@@ -110,12 +110,24 @@
   background-color: var(--color-brand-primary);
   color: var(--color-brand-text);
 }
+[data-menu-open] {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 [data-menu-open] body {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Mobile menu: circular reveal from the toggle button */
 .mobile-nav {
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: clip;
+  max-width: 100%;
+  scrollbar-width: none;
+  overscroll-behavior: none;
+  touch-action: none;
   clip-path: circle(0% at calc(100% - 2.75rem) 2.6rem);
   visibility: hidden;
   transition:
@@ -128,6 +140,23 @@
   transition:
     clip-path 0.75s cubic-bezier(0.7, 0, 0.2, 1),
     visibility 0s;
+}
+.mobile-nav::-webkit-scrollbar {
+  display: none;
+}
+/* Keep links tappable even though the panel blocks touch scrolling */
+.mobile-nav a {
+  touch-action: manipulation;
+}
+/* Short screens (e.g. landscape phones): compact layout so nothing overflows */
+@media (max-height: 520px) {
+  .mobile-nav {
+    padding-top: 5.5rem;
+    padding-bottom: 1rem;
+  }
+  .mobile-nav .mn-info {
+    display: none;
+  }
 }
 .mn-item {
   opacity: 0;
