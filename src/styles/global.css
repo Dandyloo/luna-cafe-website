@@ -223,6 +223,87 @@
   animation-delay: 0.3s;
 }
 
+/* ---------- Hero card deck (stacked flip) ---------- */
+.hero-deck {
+  perspective: 1600px;
+}
+.hero-card {
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  transition:
+    transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.6s ease;
+}
+.hero-card[data-pos="0"] {
+  z-index: 3;
+  transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+}
+.hero-card[data-pos="1"] {
+  z-index: 2;
+  transform: translate3d(-12px, -14px, 0) rotate(-3deg) scale(0.96);
+}
+.hero-card[data-pos="2"] {
+  z-index: 1;
+  transform: translate3d(12px, -26px, 0) rotate(2.5deg) scale(0.92);
+}
+/* Front card swings away like a flipped card */
+.hero-card.is-leaving {
+  z-index: 4;
+  transform-origin: 0% 60%;
+  animation: deckFlipOut 0.9s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+}
+/* Snap to the back of the stack while invisible, then fade in */
+.hero-card.is-resetting {
+  opacity: 0;
+  transition: none;
+}
+@keyframes deckFlipOut {
+  0% {
+    transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg);
+    opacity: 1;
+  }
+  60% {
+    transform: translate3d(-22%, -6%, 140px) rotateY(-62deg) rotateZ(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-48%, -2%, -60px) rotateY(-88deg) rotateZ(-10deg);
+    opacity: 0;
+  }
+}
+
+/* Progress dots */
+.hero-dot {
+  position: relative;
+  height: 0.375rem;
+  width: 0.375rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(68, 45, 39, 0.25);
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hero-dot.is-active {
+  width: 1.75rem;
+}
+.hero-dot.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-brand-primary);
+  transform-origin: left;
+  animation: heroDot 5s linear forwards;
+}
+@keyframes heroDot {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* Scroll-driven parallax on the hero photo (progressive enhancement) */
 .parallax-img {
   transform: scale(1.1);

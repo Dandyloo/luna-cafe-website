@@ -278,11 +278,42 @@ const pageAnim = {
             // This module runs once; the router swaps the DOM between pages,
             // so everything uses document-level delegation or re-inits on page-load.
             const root = document.documentElement;
+            let lockedY = 0;
+
+            // Hard scroll lock: iOS/Android ignore overflow:hidden on html/body,
+            // so pin the body in place and restore the position on close.
+            function lockScroll(lock: boolean) {
+                const b = document.body;
+                if (lock) {
+                    if (b.style.position === "fixed") return;
+                    lockedY = window.scrollY;
+                    b.style.position = "fixed";
+                    b.style.top = `-${lockedY}px`;
+                    b.style.left = "0";
+                    b.style.right = "0";
+                    b.style.width = "100%";
+                } else if (b.style.position === "fixed") {
+                    b.style.position = "";
+                    b.style.top = "";
+                    b.style.left = "";
+                    b.style.right = "";
+                    b.style.width = "";
+                    window.scrollTo({ top: lockedY, behavior: "instant" });
+                }
+            }
+
+            // Block any wheel/touch scrolling while the menu is open
+            const blockScroll = (e: Event) => {
+                if (root.hasAttribute("data-menu-open")) e.preventDefault();
+            };
+            document.addEventListener("touchmove", blockScroll, { passive: false });
+            document.addEventListener("wheel", blockScroll, { passive: false });
 
             function setOpen(open: boolean) {
                 const btn = document.getElementById("nav-toggle");
                 const panel = document.getElementById("mobile-nav");
                 root.toggleAttribute("data-menu-open", open);
+                lockScroll(open);
                 btn?.setAttribute("aria-expanded", String(open));
                 btn?.setAttribute("aria-label", open ? "Close menu" : "Open menu");
                 panel?.setAttribute("aria-hidden", String(!open));

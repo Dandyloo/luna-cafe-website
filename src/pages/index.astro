@@ -5,8 +5,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 const whatsapp =
 	"https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...";
 
-// Drop your hero photo at /public/hero.jpg (or change this path)
-const heroImage = "/hero.avif";
+// Hero card deck: flips through these every 5 seconds (files live in /public)
+const heroSlides = [
+	{ src: "/macha-hero.avif", alt: "Fresh matcha drink at Luna Café" },
+	{ src: "/shawarma-hero.avif", alt: "Loaded shawarma at Luna Café" },
+	{ src: "/pizza-hero.avif", alt: "Luna Special Pizza at Luna Café" },
+];
 
 const ticker = [
 	"Brown Sugar Boba",
@@ -131,18 +135,36 @@ const offers = [
 						aria-hidden="true"
 					>
 					</div>
-					<div
-						class="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] border border-brand-shadow/10 bg-gradient-to-br from-brand-accent/60 to-brand-primary/40 shadow-2xl shadow-brand-shadow/20"
-					>
-						<img
-							src={heroImage}
-							alt="Drinks and food at Luna Café"
-							width="800"
-							height="1000"
-							fetchpriority="high"
-							class="parallax-img h-full w-full object-cover"
-							onerror="this.style.display='none'"
-						/>
+					<div id="hero-deck" class="hero-deck relative aspect-[4/5]">
+						{
+							heroSlides.map((s, i) => (
+								<div
+									data-pos={i}
+									aria-hidden={i === 0 ? undefined : "true"}
+									class="hero-card absolute inset-0 overflow-hidden rounded-[2.5rem] border border-brand-shadow/10 bg-gradient-to-br from-brand-accent/60 to-brand-primary/40 shadow-2xl shadow-brand-shadow/20"
+								>
+									<img
+										src={s.src}
+										alt={s.alt}
+										width="800"
+										height="1000"
+										fetchpriority={i === 0 ? "high" : undefined}
+										decoding="async"
+										class="parallax-img h-full w-full object-cover"
+										onerror="this.style.display='none'"
+									/>
+								</div>
+							))
+						}
+						<div class="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center" aria-hidden="true">
+							<div class="flex items-center gap-2 rounded-full bg-white/70 px-3 py-2 backdrop-blur">
+								{
+									heroSlides.map((_, i) => (
+										<span class:list={["hero-dot", i === 0 && "is-active"]} />
+									))
+								}
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -269,3 +291,79 @@ const offers = [
 		</div>
 	</section>
 </BaseLayout>
+
+<script>
+	const INTERVAL = 5000;
+	const FLIP_MS = 900;
+	let timer: number | undefined;
+
+	function stop() {
+		clearInterval(timer);
+		timer = undefined;
+	}
+
+	function init() {
+		stop();
+		const deck = document.getElementById("hero-deck");
+		if (!deck) return;
+
+		const cards = Array.from(deck.querySelectorAll<HTMLElement>(".hero-card"));
+		const dots = Array.from(deck.querySelectorAll<HTMLElement>(".hero-dot"));
+		if (cards.length < 2) return;
+
+		const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+		let order = cards.map((_, i) => i); // order[0] = card currently in front
+		let busy = false;
+
+		const paint = () => {
+			cards.forEach((c, i) => c.setAttribute("aria-hidden", String(order[0] !== i)));
+			dots.forEach((d, i) => d.classList.toggle("is-active", i === order[0]));
+		};
+
+		const advance = () => {
+			if (!deck.isConnected) return stop();
+			if (busy) return;
+			busy = true;
+
+			const leaving = cards[order[0]];
+			order.push(order.shift()!);
+
+			// Promote the next two cards (they animate via CSS transitions)
+			cards[order[0]].dataset.pos = "0";
+			cards[order[1]].dataset.pos = "1";
+			paint();
+
+			if (reduce.matches) {
+				leaving.dataset.pos = "2";
+				busy = false;
+				return;
+			}
+
+			// Front card flips away, then slips in at the back of the stack
+			leaving.classList.add("is-leaving");
+			setTimeout(() => {
+				leaving.classList.add("is-resetting");
+				leaving.classList.remove("is-leaving");
+				leaving.dataset.pos = "2";
+				void leaving.offsetWidth; // commit the jump while hidden
+				leaving.classList.remove("is-resetting");
+				busy = false;
+			}, FLIP_MS);
+		};
+
+		const start = () => {
+			stop();
+			timer = window.setInterval(advance, INTERVAL);
+		};
+
+		document.addEventListener(
+			"visibilitychange",
+			() => (document.hidden ? stop() : deck.isConnected && start()),
+			{ once: false },
+		);
+		start();
+	}
+
+	document.addEventListener("astro:page-load", init);
+	document.addEventListener("astro:before-swap", stop);
+</script>
