@@ -44,32 +44,11 @@ function getPrices(item: any): Price[] {
         </div>
     </section>
 
-    <!-- Sticky category pills -->
-    <nav
-        class="sticky top-[5.5rem] z-40 mx-auto max-w-6xl px-4 sm:px-6"
-        aria-label="Menu categories"
-    >
-        <div
-            class="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-brand-shadow/10 bg-white/70 p-1.5 backdrop-blur-xl sm:justify-center"
-        >
-            {
-                menuData.map((c) => (
-                    <a
-                        href={`#${c.id}`}
-                        class="shrink-0 rounded-full px-5 py-2.5 text-sm font-bold text-brand-text/75 transition hover:bg-brand-primary hover:text-brand-text"
-                    >
-                        {c.name}
-                    </a>
-                ))
-            }
-        </div>
-    </nav>
-
     <!-- Menu sections -->
     <div class="mx-auto max-w-6xl space-y-20 px-4 pt-14 sm:px-6 sm:space-y-28">
         {
             menuData.map((category, i) => (
-                <section id={category.id} class="scroll-mt-32">
+                <section>
                     <div class="reveal flex items-end gap-4 border-b border-brand-shadow/10 pb-5">
                         <span class="font-heading text-lg font-bold text-brand-secondary">
                             0{i + 1}

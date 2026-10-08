@@ -92,7 +92,7 @@ const pageAnim = {
         >
             <div
                 id="site-bar"
-                class="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-brand-shadow/10 bg-white/60 py-1.5 pr-2 pl-2 backdrop-blur-xl transition-all duration-300 sm:pl-2.5"
+                class="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-brand-shadow/10 bg-white/60 py-1.5 pr-4 pl-2 backdrop-blur-xl transition-all duration-300 sm:pr-5 sm:pl-2.5"
             >
                 <a
                     href="/"
@@ -316,9 +316,8 @@ const pageAnim = {
                     ?.classList.toggle("is-scrolled", window.scrollY > 12);
             window.addEventListener("scroll", onScroll, { passive: true });
 
-            // Scroll-reveal + menu scroll-spy, re-run after every navigation
+            // Scroll-reveal, re-run after every navigation
             let revealIO: IntersectionObserver | undefined;
-            let spyIO: IntersectionObserver | undefined;
 
             function initPage() {
                 onScroll();
@@ -336,37 +335,6 @@ const pageAnim = {
                     { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
                 );
                 document.querySelectorAll(".reveal").forEach((el) => revealIO!.observe(el));
-
-                spyIO?.disconnect();
-                const pills = document.querySelectorAll<HTMLAnchorElement>(
-                    'nav[aria-label="Menu categories"] a',
-                );
-                if (pills.length) {
-                    spyIO = new IntersectionObserver(
-                        (entries) => {
-                            entries.forEach((en) => {
-                                if (!en.isIntersecting) return;
-                                pills.forEach((p) =>
-                                    p.toggleAttribute(
-                                        "aria-current",
-                                        p.getAttribute("href") === `#${en.target.id}`,
-                                    ),
-                                );
-                                pills.forEach((p) => {
-                                    if (p.hasAttribute("aria-current")) {
-                                        p.setAttribute("aria-current", "true");
-                                        p.scrollIntoView({ inline: "center", block: "nearest" });
-                                    }
-                                });
-                            });
-                        },
-                        { rootMargin: "-30% 0px -60% 0px" },
-                    );
-                    pills.forEach((p) => {
-                        const sec = document.querySelector(p.getAttribute("href")!);
-                        if (sec) spyIO!.observe(sec);
-                    });
-                }
             }
 
             document.addEventListener("astro:page-load", initPage);
