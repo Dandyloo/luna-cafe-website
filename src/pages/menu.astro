@@ -1,0 +1,146 @@
+---
+// src/pages/menu.astro
+import BaseLayout from "../layouts/BaseLayout.astro";
+import menuData from "../data/menu.json";
+
+type Price = { label?: string; value: number };
+
+// Normalises every item shape into a list of price chips.
+function getPrices(item: any): Price[] {
+    const out: Price[] = [];
+    if ("price" in item && item.price !== null) {
+        out.push({ value: item.price });
+    }
+    if ("priceSmall" in item || ("priceLarge" in item && !("priceMedium" in item))) {
+        if (item.priceSmall != null) out.push({ label: "500ml", value: item.priceSmall });
+        if (item.priceLarge != null) out.push({ label: "700ml", value: item.priceLarge });
+    }
+    if ("priceMedium" in item) {
+        if (item.priceMedium != null) out.push({ label: "M", value: item.priceMedium });
+        if (item.priceLarge != null) out.push({ label: "L", value: item.priceLarge });
+    }
+    return out;
+}
+---
+
+<BaseLayout title="Menu – Luna Café & Eatery">
+    <!-- Page header -->
+    <section class="relative isolate overflow-hidden">
+        <div class="absolute inset-0 -z-10 bg-grain"></div>
+        <div
+            class="absolute -top-20 left-1/2 -z-10 h-80 w-[40rem] -translate-x-1/2 rounded-full bg-brand-primary/25 blur-3xl"
+        >
+        </div>
+        <div class="mx-auto max-w-6xl px-4 pt-32 pb-10 text-center sm:px-6 sm:pt-40">
+            <p class="animate-rise text-sm font-bold uppercase tracking-widest text-brand-deep">
+                Luna Café &amp; Eatery
+            </p>
+            <h1 class="animate-rise [animation-delay:100ms] mt-3 text-5xl font-extrabold text-brand-shadow md:text-7xl">
+                Our Menu
+            </h1>
+            <p class="animate-rise [animation-delay:200ms] mx-auto mt-4 max-w-xl text-brand-text/70">
+                Prices in GHS. Sizes: 500ml / 700ml or M / L where shown.
+            </p>
+        </div>
+    </section>
+
+    <!-- Sticky category pills -->
+    <nav
+        class="sticky top-[5.5rem] z-40 mx-auto max-w-6xl px-4 sm:px-6"
+        aria-label="Menu categories"
+    >
+        <div
+            class="no-scrollbar flex gap-2 overflow-x-auto rounded-full border border-brand-shadow/10 bg-white/70 p-1.5 backdrop-blur-xl sm:justify-center"
+        >
+            {
+                menuData.map((c) => (
+                    <a
+                        href={`#${c.id}`}
+                        class="shrink-0 rounded-full px-5 py-2.5 text-sm font-bold text-brand-text/75 transition hover:bg-brand-primary hover:text-brand-text"
+                    >
+                        {c.name}
+                    </a>
+                ))
+            }
+        </div>
+    </nav>
+
+    <!-- Menu sections -->
+    <div class="mx-auto max-w-6xl space-y-20 px-4 pt-14 sm:px-6 sm:space-y-28">
+        {
+            menuData.map((category, i) => (
+                <section id={category.id} class="scroll-mt-32">
+                    <div class="reveal flex items-end gap-4 border-b border-brand-shadow/10 pb-5">
+                        <span class="font-heading text-lg font-bold text-brand-secondary">
+                            0{i + 1}
+                        </span>
+                        <h2 class="text-4xl font-extrabold text-brand-shadow md:text-5xl">
+                            {category.name}
+                        </h2>
+                    </div>
+
+                    <div class="mt-10 grid gap-5 lg:grid-cols-2">
+                        {category.groups.map((group, gi) => (
+                            <div style={`--d:${(gi % 2) * 120}ms`} class="reveal rounded-[2rem] border border-brand-shadow/10 bg-white/80 p-6 shadow-sm transition hover:shadow-xl hover:shadow-brand-shadow/10 sm:p-8">
+                                <h3 class="flex items-center gap-3 text-xl font-extrabold text-brand-shadow md:text-2xl">
+                                    <span class="h-2 w-2 rounded-full bg-brand-secondary" />
+                                    {group.name}
+                                </h3>
+
+                                <ul class="mt-5 divide-y divide-brand-shadow/10">
+                                    {group.items.map((item: any) => (
+                                        <li class="flex items-center justify-between gap-4 py-3">
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-brand-text">
+                                                    {item.name}
+                                                </p>
+                                                {item.description && (
+                                                    <p class="mt-0.5 text-sm text-brand-text/60">
+                                                        {item.description}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
+                                                {getPrices(item).map((p) => (
+                                                    <span class="inline-flex items-baseline gap-1.5 rounded-full bg-brand-primary/15 px-3 py-1 text-sm font-bold text-brand-deep">
+                                                        {p.label && (
+                                                            <span class="text-[0.65rem] font-semibold uppercase tracking-wide text-brand-text/55">
+                                                                {p.label}
+                                                            </span>
+                                                        )}
+                                                        <span>GHS {p.value}</span>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            ))
+        }
+    </div>
+
+    <!-- Order CTA -->
+    <section class="reveal mx-auto mt-24 max-w-6xl px-4 sm:px-6">
+        <div class="flex flex-col items-center justify-between gap-6 rounded-[2.5rem] bg-brand-shadow px-8 py-10 text-center text-brand-bg sm:flex-row sm:px-12 sm:text-left">
+            <div>
+                <h2 class="text-3xl font-extrabold">Ready to order?</h2>
+                <p class="mt-2 text-brand-bg/70">
+                    Message us on WhatsApp and we'll get it ready.
+                </p>
+            </div>
+            <a
+                href="https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order..."
+                target="_blank"
+                rel="noopener"
+                class="shrink-0 rounded-full bg-brand-primary px-8 py-4 font-bold text-brand-text transition hover:-translate-y-0.5 hover:bg-brand-secondary hover:text-white"
+            >
+                Order on WhatsApp
+            </a>
+        </div>
+    </section>
+</BaseLayout>

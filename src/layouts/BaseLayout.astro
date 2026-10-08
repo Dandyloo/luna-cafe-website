@@ -1,0 +1,375 @@
+---
+// src/layouts/BaseLayout.astro
+import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
+
+interface Props {
+    title: string;
+    description?: string;
+}
+
+const { title, description = "Luna Café & Eatery – Cape Coast" } = Astro.props;
+const path = Astro.url.pathname;
+const whatsapp =
+    "https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...";
+
+// Swap this file in /public to change the logo (PNG/SVG/WebP all work)
+const logoSrc = "/logo.jpg";
+
+const links = [
+    { href: "/", label: "Home" },
+    { href: "/menu", label: "Menu" },
+];
+const isActive = (href: string) =>
+    href === "/" ? path === "/" : path.startsWith(href);
+
+// Page content: old page lifts & fades out, new page rises in (keyframes in global.css)
+const pageAnim = {
+    forwards: {
+        old: {
+            name: "pageOut",
+            duration: "0.3s",
+            easing: "cubic-bezier(0.4, 0, 1, 1)",
+            fillMode: "forwards",
+            delay: "0s",
+            direction: "normal",
+        },
+        new: {
+            name: "pageIn",
+            duration: "0.6s",
+            easing: "cubic-bezier(0.2, 0.7, 0.2, 1)",
+            delay: "0.1s",
+            fillMode: "backwards",
+            direction: "normal",
+        },
+    },
+    backwards: {
+        old: {
+            name: "pageOut",
+            duration: "0.3s",
+            easing: "cubic-bezier(0.4, 0, 1, 1)",
+            fillMode: "forwards",
+            delay: "0s",
+            direction: "normal",
+        },
+        new: {
+            name: "pageIn",
+            duration: "0.6s",
+            easing: "cubic-bezier(0.2, 0.7, 0.2, 1)",
+            delay: "0.1s",
+            fillMode: "backwards",
+            direction: "normal",
+        },
+    },
+};
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#FFF7E8" />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Lilita+One&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- Smooth page-to-page transitions -->
+        <ClientRouter />
+    </head>
+    <body class="min-h-screen font-body">
+        <!-- Header (fixed so page backgrounds run behind it) -->
+        <header
+            class="fixed inset-x-0 top-3 z-50 px-3 sm:px-6"
+            transition:name="site-header"
+            transition:animate="none"
+        >
+            <div
+                id="site-bar"
+                class="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-brand-shadow/10 bg-white/60 py-1.5 pr-2 pl-2 backdrop-blur-xl transition-all duration-300 sm:pl-2.5"
+            >
+                <a
+                    href="/"
+                    class="group flex items-center"
+                    aria-label="Luna Café & Eatery – home"
+                >
+                    <img
+                        src={logoSrc}
+                        alt=""
+                        width="80"
+                        height="80"
+                        class="h-16 w-16 rounded-full object-contain transition duration-500 group-hover:rotate-[-8deg] group-hover:scale-105 sm:h-20 sm:w-20"
+                    />
+                </a>
+
+                <!-- Desktop nav -->
+                <nav class="hidden items-center gap-8 md:flex" aria-label="Main">
+                    {
+                        links.map((l) => (
+                            <a
+                                href={l.href}
+                                aria-current={isActive(l.href) ? "page" : undefined}
+                                class:list={[
+                                    "group relative py-2 text-sm font-semibold transition",
+                                    isActive(l.href)
+                                        ? "text-brand-shadow"
+                                        : "text-brand-text/60 hover:text-brand-shadow",
+                                ]}
+                            >
+                                {l.label}
+                                <span
+                                    class:list={[
+                                        "absolute inset-x-0 -bottom-0.5 h-0.5 origin-left rounded-full bg-brand-primary transition-transform duration-300",
+                                        isActive(l.href)
+                                            ? "scale-x-100"
+                                            : "scale-x-0 group-hover:scale-x-100",
+                                    ]}
+                                />
+                            </a>
+                        ))
+                    }
+                </nav>
+
+                <div class="flex items-center gap-2">
+                    <a
+                        href={whatsapp}
+                        target="_blank"
+                        rel="noopener"
+                        class="group hidden items-center gap-2 rounded-full bg-brand-shadow px-5 py-3 text-sm font-bold text-brand-bg transition hover:bg-brand-primary hover:text-brand-text md:inline-flex"
+                    >
+                        Order now
+                        <svg class="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+                    </a>
+
+                    <button
+                        id="nav-toggle"
+                        type="button"
+                        class="relative grid h-12 w-12 place-items-center rounded-full bg-brand-shadow text-brand-bg transition active:scale-90 md:hidden"
+                        aria-label="Open menu"
+                        aria-expanded="false"
+                        aria-controls="mobile-nav"
+                    >
+                        <span class="burger-line absolute h-0.5 w-5 -translate-y-[5px] rounded-full bg-current transition duration-300"></span>
+                        <span class="burger-line absolute h-0.5 w-5 translate-y-[5px] rounded-full bg-current transition duration-300"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mobile menu: full-screen reveal -->
+        <div
+            id="mobile-nav"
+            class="mobile-nav fixed inset-0 z-40 flex flex-col overflow-y-auto bg-brand-shadow px-6 pt-32 pb-8 text-brand-bg md:hidden"
+            aria-hidden="true"
+            inert
+            transition:animate="none"
+        >
+            <div class="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-brand-primary/25 blur-3xl"></div>
+            <div class="absolute inset-0 bg-grain opacity-20"></div>
+
+            <nav class="relative flex flex-col" aria-label="Mobile">
+                <p class="mn-item text-xs font-bold uppercase tracking-widest text-brand-accent">
+                    Navigate
+                </p>
+                {
+                    links.map((l, i) => (
+                        <a
+                            href={l.href}
+                            style={`--i:${i}`}
+                            class="mn-item group flex items-baseline justify-between border-b border-brand-bg/15 py-5"
+                        >
+                            <span
+                                class:list={[
+                                    "font-heading text-6xl font-extrabold tracking-tight transition group-active:translate-x-2",
+                                    isActive(l.href) ? "text-brand-primary" : "text-brand-bg",
+                                ]}
+                            >
+                                {l.label}
+                            </span>
+                            <span class="font-heading text-sm font-bold text-brand-bg/40">
+                                0{i + 1}
+                            </span>
+                        </a>
+                    ))
+                }
+            </nav>
+
+            <div class="relative mt-auto pt-10">
+                <a
+                    href={whatsapp}
+                    target="_blank"
+                    rel="noopener"
+                    style="--i:3"
+                    class="mn-item flex items-center justify-between rounded-full bg-brand-primary px-7 py-4 font-bold text-brand-text"
+                >
+                    Order on WhatsApp
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"></path></svg>
+                </a>
+
+                <div style="--i:4" class="mn-item mt-8 grid grid-cols-2 gap-6 text-sm text-brand-bg/70">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-brand-accent">Find us</p>
+                        <p class="mt-2">Pedu, Cape Coast</p>
+                        <a href="tel:+233593676875" class="mt-1 block">+233 59 367 6875</a>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-brand-accent">Hours</p>
+                        <p class="mt-2">Mon–Thu 8:00–22:00</p>
+                        <p class="mt-1">Fri–Sun 8:00–23:00</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main transition:animate={pageAnim}>
+            <slot />
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-24 bg-brand-shadow text-brand-bg" transition:animate="none">
+            <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+                <div class="grid gap-10 sm:grid-cols-3">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <img src={logoSrc} alt="" width="80" height="80" class="h-16 w-16 rounded-full object-contain sm:h-20 sm:w-20" />
+                            <p class="font-logo text-3xl text-brand-primary">Luna Café</p>
+                        </div>
+                        <p class="mt-4 max-w-xs text-sm text-brand-bg/70">
+                            Boba, shawarma, coffee and more. Cozy, quick and made for sharing.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-widest text-brand-accent">Find us</h4>
+                        <ul class="mt-4 space-y-2 text-sm text-brand-bg/80">
+                            <li>Pedu, Cape Coast</li>
+                            <li>
+                                <a href="tel:+233593676875" class="transition hover:text-brand-primary">+233 59 367 6875</a>
+                            </li>
+                            <li>
+                                <a href="https://wa.me/233593676875" target="_blank" rel="noopener" class="transition hover:text-brand-primary">WhatsApp us</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-widest text-brand-accent">Hours</h4>
+                        <ul class="mt-4 space-y-2 text-sm text-brand-bg/80">
+                            <li class="flex justify-between gap-6 sm:max-w-[16rem]"><span>Mon–Thu</span><span>8:00–22:00</span></li>
+                            <li class="flex justify-between gap-6 sm:max-w-[16rem]"><span>Fri–Sun</span><span>8:00–23:00</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-brand-bg/15 pt-6 text-xs text-brand-bg/55">
+                    <p>© {new Date().getFullYear()} Luna Café & Eatery</p>
+                    <a href={whatsapp} target="_blank" rel="noopener" class="transition hover:text-brand-primary">Order on WhatsApp →</a>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            // This module runs once; the router swaps the DOM between pages,
+            // so everything uses document-level delegation or re-inits on page-load.
+            const root = document.documentElement;
+
+            function setOpen(open: boolean) {
+                const btn = document.getElementById("nav-toggle");
+                const panel = document.getElementById("mobile-nav");
+                root.toggleAttribute("data-menu-open", open);
+                btn?.setAttribute("aria-expanded", String(open));
+                btn?.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+                panel?.setAttribute("aria-hidden", String(!open));
+                panel?.toggleAttribute("inert", !open);
+            }
+
+            document.addEventListener("click", (e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest("#nav-toggle")) {
+                    setOpen(!root.hasAttribute("data-menu-open"));
+                } else if (target.closest("#mobile-nav a")) {
+                    setOpen(false);
+                }
+            });
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") setOpen(false);
+            });
+            window
+                .matchMedia("(min-width: 768px)")
+                .addEventListener("change", (e) => e.matches && setOpen(false));
+
+            // Don't carry the open menu into the next page
+            document.addEventListener("astro:before-swap", (e: any) => {
+                e.newDocument.documentElement.removeAttribute("data-menu-open");
+            });
+
+            // Stronger glass + shadow once the page scrolls
+            const onScroll = () =>
+                document
+                    .getElementById("site-bar")
+                    ?.classList.toggle("is-scrolled", window.scrollY > 12);
+            window.addEventListener("scroll", onScroll, { passive: true });
+
+            // Scroll-reveal + menu scroll-spy, re-run after every navigation
+            let revealIO: IntersectionObserver | undefined;
+            let spyIO: IntersectionObserver | undefined;
+
+            function initPage() {
+                onScroll();
+
+                revealIO?.disconnect();
+                revealIO = new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach((en) => {
+                            if (en.isIntersecting) {
+                                en.target.classList.add("is-in");
+                                revealIO?.unobserve(en.target);
+                            }
+                        });
+                    },
+                    { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
+                );
+                document.querySelectorAll(".reveal").forEach((el) => revealIO!.observe(el));
+
+                spyIO?.disconnect();
+                const pills = document.querySelectorAll<HTMLAnchorElement>(
+                    'nav[aria-label="Menu categories"] a',
+                );
+                if (pills.length) {
+                    spyIO = new IntersectionObserver(
+                        (entries) => {
+                            entries.forEach((en) => {
+                                if (!en.isIntersecting) return;
+                                pills.forEach((p) =>
+                                    p.toggleAttribute(
+                                        "aria-current",
+                                        p.getAttribute("href") === `#${en.target.id}`,
+                                    ),
+                                );
+                                pills.forEach((p) => {
+                                    if (p.hasAttribute("aria-current")) {
+                                        p.setAttribute("aria-current", "true");
+                                        p.scrollIntoView({ inline: "center", block: "nearest" });
+                                    }
+                                });
+                            });
+                        },
+                        { rootMargin: "-30% 0px -60% 0px" },
+                    );
+                    pills.forEach((p) => {
+                        const sec = document.querySelector(p.getAttribute("href")!);
+                        if (sec) spyIO!.observe(sec);
+                    });
+                }
+            }
+
+            document.addEventListener("astro:page-load", initPage);
+        </script>
+    </body>
+</html>

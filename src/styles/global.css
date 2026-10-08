@@ -1,0 +1,239 @@
+@import "tailwindcss";
+
+/* Design tokens (Tailwind v4 reads these from CSS, not tailwind.config.mjs) */
+@theme {
+    --color-brand-primary: #f9800b;
+    --color-brand-secondary: #f4520b;
+    --color-brand-deep: #b24a00; /* AA-contrast orange for text on cream */
+    --color-brand-bg: #fff7e8;
+    --color-brand-text: #1b1818;
+    --color-brand-accent: #eab86e;
+    --color-brand-shadow: #442d27;
+
+    --font-heading: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-logo: "Lilita One", system-ui, sans-serif;
+    --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+
+    --animate-marquee: marquee 38s linear infinite;
+    --animate-float: float 7s ease-in-out infinite;
+    --animate-rise: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+    @keyframes marquee {
+        to {
+            transform: translateX(-50%);
+        }
+    }
+    @keyframes float {
+        0%,
+        100% {
+            transform: translateY(0) rotate(0deg);
+        }
+        50% {
+            transform: translateY(-14px) rotate(3deg);
+        }
+    }
+    @keyframes rise {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 7rem;
+    }
+
+    body {
+        font-family: var(--font-body);
+        background-color: var(--color-brand-bg);
+        color: var(--color-brand-text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        font-family: var(--font-heading);
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        text-wrap: balance;
+    }
+
+    ::selection {
+        background: var(--color-brand-primary);
+        color: var(--color-brand-text);
+    }
+
+    :focus-visible {
+        outline: 3px solid var(--color-brand-secondary);
+        outline-offset: 3px;
+        border-radius: 0.5rem;
+    }
+}
+
+@layer utilities {
+    .no-scrollbar {
+        scrollbar-width: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .bg-grain {
+        background-image: radial-gradient(
+            rgba(68, 45, 39, 0.07) 1px,
+            transparent 1px
+        );
+        background-size: 22px 22px;
+    }
+}
+
+/* Navigation bar */
+#site-bar.is-scrolled {
+    background-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 12px 40px -16px rgba(68, 45, 39, 0.35);
+}
+
+/* Hamburger -> close icon */
+[data-menu-open] .burger-line:first-child {
+    translate: 0 0;
+    rotate: 45deg;
+}
+[data-menu-open] .burger-line:last-child {
+    translate: 0 0;
+    rotate: -45deg;
+}
+[data-menu-open] #nav-toggle {
+    background-color: var(--color-brand-primary);
+    color: var(--color-brand-text);
+}
+[data-menu-open] body {
+    overflow: hidden;
+}
+
+/* Mobile menu: circular reveal from the toggle button */
+.mobile-nav {
+    clip-path: circle(0% at calc(100% - 2.75rem) 2.6rem);
+    visibility: hidden;
+    transition:
+        clip-path 0.65s cubic-bezier(0.7, 0, 0.2, 1),
+        visibility 0s linear 0.65s;
+}
+[data-menu-open] .mobile-nav {
+    clip-path: circle(150% at calc(100% - 2.75rem) 2.6rem);
+    visibility: visible;
+    transition:
+        clip-path 0.75s cubic-bezier(0.7, 0, 0.2, 1),
+        visibility 0s;
+}
+.mn-item {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+}
+[data-menu-open] .mn-item {
+    opacity: 1;
+    transform: none;
+    transition:
+        opacity 0.5s ease calc(0.25s + var(--i, 0) * 0.07s),
+        transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1)
+            calc(0.25s + var(--i, 0) * 0.07s);
+}
+
+/* ---------- Motion ---------- */
+
+/* Page transitions (used via transition:animate in BaseLayout) */
+@keyframes pageOut {
+    to {
+        opacity: 0;
+        transform: translateY(-16px) scale(0.99);
+    }
+}
+@keyframes pageIn {
+    from {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+}
+
+/* Scroll reveal (only hidden when JS can reveal it again) */
+@media (scripting: enabled) {
+    .reveal {
+        opacity: 0;
+        transform: translateY(32px);
+        transition:
+            opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms),
+            transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0ms),
+            translate 0.3s ease,
+            box-shadow 0.3s ease,
+            background-color 0.3s ease,
+            color 0.3s ease;
+    }
+    .reveal.is-in {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Hero entrance: children rise one after another */
+.hero-stagger > * {
+    animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero-stagger > *:nth-child(2) {
+    animation-delay: 0.1s;
+}
+.hero-stagger > *:nth-child(3) {
+    animation-delay: 0.2s;
+}
+.hero-stagger > *:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+/* Scroll-driven parallax on the hero photo (progressive enhancement) */
+.parallax-img {
+    transform: scale(1.1);
+}
+@supports (animation-timeline: scroll()) {
+    @keyframes parallaxY {
+        from {
+            transform: scale(1.1) translateY(0);
+        }
+        to {
+            transform: scale(1.1) translateY(-7%);
+        }
+    }
+    .parallax-img {
+        animation: parallaxY linear both;
+        animation-timeline: scroll(root);
+        animation-range: 0 100vh;
+    }
+}
+
+/* Menu category pills: scroll-spy state */
+nav[aria-label="Menu categories"] a[aria-current="true"] {
+    background-color: var(--color-brand-shadow);
+    color: var(--color-brand-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
