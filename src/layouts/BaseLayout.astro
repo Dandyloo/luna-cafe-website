@@ -13,6 +13,23 @@ const path = Astro.url.pathname;
 const whatsapp =
     "https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...";
 
+// Official social accounts (add new ones here and they show up in the footer + mobile menu)
+const socials = [
+    { name: "Instagram", handle: "@lunacafegh", href: "https://www.instagram.com/lunacafegh/" },
+    { name: "TikTok", handle: "@lunacafegh", href: "https://www.tiktok.com/@lunacafegh" },
+];
+const TIKTOK_PATH =
+    "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z";
+
+const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CafeOrCoffeeShop",
+    name: "Luna Café & Eatery",
+    telephone: "+233593676875",
+    address: { "@type": "PostalAddress", addressLocality: "Cape Coast", addressCountry: "GH" },
+    sameAs: socials.map((s) => s.href),
+};
+
 // Swap this file in /public to change the logo (PNG/SVG/WebP all work)
 const logoSrc = "/logo.jpg";
 
@@ -72,6 +89,7 @@ const pageAnim = {
         <meta name="theme-color" content="#FFF7E8" />
         <title>{title}</title>
         <meta name="description" content={description} />
+        <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -223,6 +241,26 @@ const pageAnim = {
                         <p class="mt-2">Mon–Thu 8:00–22:00</p>
                         <p class="mt-1">Fri–Sun 8:00–23:00</p>
                     </div>
+                    <div class="col-span-2 flex items-center gap-3">
+                        {
+                            socials.map((s) => (
+                                <a
+                                    href={s.href}
+                                    target="_blank"
+                                    rel="noopener"
+                                    aria-label={`${s.name} ${s.handle}`}
+                                    class="grid h-10 w-10 place-items-center rounded-full border border-brand-bg/25 text-brand-bg transition active:scale-90"
+                                >
+                                    {s.name === "TikTok" ? (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={TIKTOK_PATH} /></svg>
+                                    ) : (
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" /></svg>
+                                    )}
+                                </a>
+                            ))
+                        }
+                        <span class="text-xs text-brand-bg/55">@lunacafegh</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -243,6 +281,26 @@ const pageAnim = {
                         <p class="mt-4 max-w-xs text-sm text-brand-bg/70">
                             Boba, shawarma, coffee and more. Cozy, quick and made for sharing.
                         </p>
+                        <div class="mt-5 flex items-center gap-3">
+                            {
+                                socials.map((s) => (
+                                    <a
+                                        href={s.href}
+                                        target="_blank"
+                                        rel="noopener"
+                                        aria-label={`${s.name} ${s.handle}`}
+                                        title={`${s.name} ${s.handle}`}
+                                        class="grid h-11 w-11 place-items-center rounded-full border border-brand-bg/25 text-brand-bg transition hover:-translate-y-0.5 hover:border-brand-primary hover:bg-brand-primary hover:text-brand-text"
+                                    >
+                                        {s.name === "TikTok" ? (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={TIKTOK_PATH} /></svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" /></svg>
+                                        )}
+                                    </a>
+                                ))
+                            }
+                        </div>
                     </div>
 
                     <div>
