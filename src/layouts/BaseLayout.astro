@@ -6,9 +6,19 @@ import { ClientRouter } from "astro:transitions";
 interface Props {
     title: string;
     description?: string;
+    noindex?: boolean;
 }
 
-const { title, description = "Luna Café & Eatery – Cape Coast" } = Astro.props;
+const {
+    title,
+    description = "Luna Café & Eatery in Pedu, Cape Coast. Boba, shawarma, pizza, coffee and breakfast. Order on WhatsApp for quick takeout.",
+    noindex = false,
+} = Astro.props;
+
+// Absolute URLs only when SITE_URL is set at build time (see astro.config.mjs)
+const site = Astro.site;
+const canonical = site ? new URL(Astro.url.pathname, site).href : undefined;
+const ogImage = site ? new URL("/logo.jpg", site).href : undefined;
 const path = Astro.url.pathname;
 const whatsapp =
     "https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...";
@@ -26,7 +36,32 @@ const jsonLd = {
     "@type": "CafeOrCoffeeShop",
     name: "Luna Café & Eatery",
     telephone: "+233593676875",
-    address: { "@type": "PostalAddress", addressLocality: "Cape Coast", addressCountry: "GH" },
+    address: {
+        "@type": "PostalAddress",
+        streetAddress: "Pedu",
+        addressLocality: "Cape Coast",
+        addressCountry: "GH",
+    },
+    servesCuisine: ["Bubble tea", "Shawarma", "Pizza", "Coffee", "Breakfast"],
+    openingHoursSpecification: [
+        {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday"],
+            opens: "08:00",
+            closes: "22:00",
+        },
+        {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: ["Friday", "Saturday", "Sunday"],
+            opens: "08:00",
+            closes: "23:00",
+        },
+    ],
+    ...(site && {
+        url: site.href,
+        image: ogImage,
+        hasMenu: new URL("/menu/", site).href,
+    }),
     sameAs: socials.map((s) => s.href),
 };
 
@@ -36,6 +71,7 @@ const logoSrc = "/logo.jpg";
 const links = [
     { href: "/", label: "Home" },
     { href: "/menu", label: "Menu" },
+    { href: "/about", label: "About" },
 ];
 const isActive = (href: string) =>
     href === "/" ? path === "/" : path.startsWith(href);
@@ -89,6 +125,28 @@ const pageAnim = {
         <meta name="theme-color" content="#FFF7E8" />
         <title>{title}</title>
         <meta name="description" content={description} />
+        <meta
+            name="robots"
+            content={noindex ? "noindex, follow" : "index, follow, max-image-preview:large"}
+        />
+        {canonical && <link rel="canonical" href={canonical} />}
+
+        <!-- Icons -->
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+        <!-- Open Graph / Twitter -->
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Luna Café & Eatery" />
+        <meta property="og:locale" content="en_GH" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        {canonical && <meta property="og:url" content={canonical} />}
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
         <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -102,6 +160,12 @@ const pageAnim = {
         <ClientRouter />
     </head>
     <body class="min-h-screen font-body">
+        <a
+            href="#main"
+            class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-full focus:bg-brand-shadow focus:px-5 focus:py-3 focus:font-bold focus:text-brand-bg"
+        >
+            Skip to content
+        </a>
         <!-- Header (fixed so page backgrounds run behind it) -->
         <header
             class="fixed inset-x-0 top-3 z-50 px-3 sm:px-6"
@@ -233,7 +297,7 @@ const pageAnim = {
                 <div style="--i:4" class="mn-item mn-info mt-6 grid grid-cols-2 gap-4 text-sm text-brand-bg/70">
                     <div class="min-w-0">
                         <p class="text-xs font-bold uppercase tracking-widest text-brand-accent">Find us</p>
-                        <p class="mt-2">Pedu, Cape Coast</p>
+                        <p class="mt-2">Pedu Goil Filling Station,<br />Cape Coast</p>
                         <a href="tel:+233593676875" class="mt-1 block">+233 59 367 6875</a>
                     </div>
                     <div class="min-w-0">
@@ -265,7 +329,7 @@ const pageAnim = {
             </div>
         </div>
 
-        <main transition:animate={pageAnim}>
+        <main id="main" tabindex="-1" class="outline-none" transition:animate={pageAnim}>
             <slot />
         </main>
 
@@ -306,7 +370,7 @@ const pageAnim = {
                     <div>
                         <h4 class="text-sm font-bold uppercase tracking-widest text-brand-accent">Find us</h4>
                         <ul class="mt-4 space-y-2 text-sm text-brand-bg/80">
-                            <li>Pedu, Cape Coast</li>
+                            <li>Pedu Goil Filling Station, Cape Coast</li>
                             <li>
                                 <a href="tel:+233593676875" class="transition hover:text-brand-primary">+233 59 367 6875</a>
                             </li>

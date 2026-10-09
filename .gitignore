@@ -1,24 +1,53 @@
 # build output
 dist/
-# generated types
+
+# generated types and caches
 .astro/
+.cache/
+*.tsbuildinfo
 
 # dependencies
 node_modules/
 
 # logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-
-# environment variables
+# environment variables (keep a committed .env.example instead)
 .env
-.env.production
+.env.*
+!.env.example
 
-# macOS-specific files
+# keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# hosting platform folders
+.wrangler/
+.netlify/
+.vercel/
+
+# test and coverage output
+coverage/
+playwright-report/
+test-results/
+
+# OS files
 .DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# jetbrains setting folder
+# editors (.vscode/ is intentionally tracked for shared settings)
 .idea/
+*.swp
+*.swo
+
+# local assistant settings
+.claude/settings.local.json

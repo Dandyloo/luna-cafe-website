@@ -1,0 +1,278 @@
+---
+// src/pages/about.astro
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const whatsapp =
+    "https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...";
+
+const place = "Pedu Goil Filling Station, Cape Coast, Ghana";
+const mapEmbed = `https://www.google.com/maps?q=${encodeURIComponent(place)}&output=embed`;
+const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
+
+const serves = [
+    {
+        n: "01",
+        title: "Luna Boba",
+        text: "Milk teas, fruit teas, signature boba and matcha.",
+        href: "/menu#luna-boba",
+    },
+    {
+        n: "02",
+        title: "Savoury Bites",
+        text: "Pizza, fried rice, jollof rice, shawarma, pastries and salads.",
+        href: "/menu#savoury-bites-drinks",
+    },
+    {
+        n: "03",
+        title: "Coffee & Breakfast",
+        text: "Iced coffee, cappuccino, sandwiches and the Luna Special Breakfast.",
+        href: "/menu#coffee-breakfast",
+    },
+];
+
+const visitors = [
+    ["Students", "A relaxed spot to study, snack or catch up between classes."],
+    ["Families", "Plenty on the menu for everyone at the table."],
+    ["Friends", "Meet up over boba, coffee or a shared pizza."],
+    ["Takeout", "Quick to grab, easy to order on WhatsApp."],
+];
+---
+
+<BaseLayout
+    title="About – Luna Café & Eatery"
+    description="Luna Café & Eatery is a cozy café in Pedu, Cape Coast serving boba, coffee, breakfast, pizza, rice dishes, shawarma and more."
+>
+    <!-- Header -->
+    <section class="relative isolate overflow-hidden">
+        <div class="absolute inset-0 -z-10 bg-grain"></div>
+        <div
+            class="absolute -top-40 -right-32 -z-10 h-[32rem] w-[32rem] rounded-full bg-brand-primary/30 blur-3xl"
+        >
+        </div>
+        <div
+            class="absolute -bottom-24 -left-24 -z-10 h-[22rem] w-[22rem] rounded-full bg-brand-accent/40 blur-3xl"
+        >
+        </div>
+
+        <div class="mx-auto max-w-6xl px-4 pt-32 pb-16 sm:px-6 sm:pt-40 sm:pb-24">
+            <div class="hero-stagger max-w-3xl">
+                <p class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                    About us
+                </p>
+                <h1 class="mt-4 text-5xl font-extrabold text-brand-shadow sm:text-6xl md:text-7xl">
+                    Good food, refreshing boba &amp; <span class="text-brand-secondary">good vibes</span>.
+                </h1>
+                <p class="mt-6 max-w-2xl text-lg text-brand-text/75 sm:text-xl">
+                    Luna Café &amp; Eatery is a cozy café and eatery in Pedu,
+                    Cape Coast, serving boba drinks, coffee, breakfast, pizza,
+                    rice dishes, shawarma, pastries and more.
+                </p>
+                <div class="mt-10 flex flex-col gap-3 sm:flex-row">
+                    <a
+                        href="/menu"
+                        class="group inline-flex items-center justify-center gap-2 rounded-full bg-brand-shadow px-8 py-4 font-bold text-brand-bg shadow-lg shadow-brand-shadow/20 transition hover:-translate-y-0.5 hover:bg-brand-text"
+                    >
+                        View menu
+                        <span class="transition group-hover:translate-x-1">→</span>
+                    </a>
+                    <a
+                        href="#visit"
+                        class="inline-flex items-center justify-center rounded-full border border-brand-shadow/15 bg-white/70 px-8 py-4 font-bold text-brand-shadow backdrop-blur transition hover:-translate-y-0.5 hover:bg-white"
+                    >
+                        Find us
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Story -->
+    <section class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div
+                class="reveal rounded-[2.5rem] border border-brand-shadow/10 bg-white/80 p-8 sm:p-12"
+            >
+                <p class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                    Our story
+                </p>
+                <h2 class="mt-3 text-3xl font-extrabold text-brand-shadow sm:text-4xl">
+                    A convenient stop for everyone.
+                </h2>
+                <div class="mt-6 space-y-5 text-lg text-brand-text/75">
+                    <p>
+                        Located at Pedu Goil Filling Station, Luna Café is a
+                        convenient stop for students, families, and anyone
+                        looking for good food, refreshing drinks, and a relaxed
+                        place to hang out.
+                    </p>
+                    <p>
+                        The café is known for its variety, from Luna Boba to
+                        savoury bites like pizza, fried rice, jollof rice,
+                        shawarma and salads, plus coffee and breakfast options.
+                    </p>
+                    <p>
+                        Whether you're grabbing a quick takeout, meeting
+                        friends, or looking for a new favourite spot in Cape
+                        Coast, we aim to be your go-to place.
+                    </p>
+                </div>
+            </div>
+
+            <div
+                class="reveal flex flex-col justify-between rounded-[2.5rem] bg-brand-primary p-8 text-brand-text sm:p-12"
+                style="--d:120ms"
+            >
+                <p class="font-heading text-3xl leading-tight font-extrabold sm:text-4xl">
+                    Good food, refreshing boba, coffee, and good vibes.
+                </p>
+                <dl class="mt-10 grid grid-cols-2 gap-4">
+                    <div>
+                        <dt class="font-heading text-4xl font-extrabold">30</dt>
+                        <dd class="text-sm font-medium opacity-75">Boba drinks</dd>
+                    </div>
+                    <div>
+                        <dt class="font-heading text-4xl font-extrabold">3</dt>
+                        <dd class="text-sm font-medium opacity-75">Menu collections</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </section>
+
+    <!-- What we serve -->
+    <section class="mx-auto max-w-6xl px-4 pt-20 sm:px-6 sm:pt-28">
+        <div class="reveal max-w-2xl">
+            <p class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                What we serve
+            </p>
+            <h2 class="mt-3 text-4xl font-extrabold text-brand-shadow md:text-5xl">
+                A little of everything.
+            </h2>
+        </div>
+
+        <div class="mt-12 grid gap-4 sm:gap-5 md:grid-cols-3">
+            {
+                serves.map((s, i) => (
+                    <a
+                        href={s.href}
+                        style={`--d:${i * 100}ms`}
+                        class="reveal group flex flex-col justify-between rounded-[2rem] border border-brand-shadow/10 bg-white p-8 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-shadow/15"
+                    >
+                        <div>
+                            <span class="font-heading text-sm font-bold text-brand-secondary">
+                                {s.n}
+                            </span>
+                            <h3 class="mt-6 text-3xl font-extrabold text-brand-shadow">
+                                {s.title}
+                            </h3>
+                            <p class="mt-3 text-brand-text/70">{s.text}</p>
+                        </div>
+                        <span class="mt-10 inline-flex items-center gap-2 text-sm font-bold text-brand-deep">
+                            See menu
+                            <span class="transition group-hover:translate-x-1">→</span>
+                        </span>
+                    </a>
+                ))
+            }
+        </div>
+    </section>
+
+    <!-- Who it's for -->
+    <section class="mx-auto max-w-6xl px-4 pt-20 sm:px-6 sm:pt-28">
+        <div
+            class="reveal overflow-hidden rounded-[2.5rem] bg-brand-shadow px-8 py-12 text-brand-bg sm:px-12 sm:py-16"
+        >
+            <h2 class="max-w-xl text-3xl font-extrabold sm:text-5xl">
+                Made for hanging out.
+            </h2>
+            <div class="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                {
+                    visitors.map(([title, text]) => (
+                        <div class="border-t border-brand-bg/20 pt-5">
+                            <h3 class="text-xl font-extrabold text-brand-primary">
+                                {title}
+                            </h3>
+                            <p class="mt-2 text-sm text-brand-bg/70">{text}</p>
+                        </div>
+                    ))
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Visit us -->
+    <section id="visit" class="mx-auto max-w-6xl scroll-mt-28 px-4 pt-20 sm:px-6 sm:pt-28">
+        <div class="reveal max-w-2xl">
+            <p class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                Visit us
+            </p>
+            <h2 class="mt-3 text-4xl font-extrabold text-brand-shadow md:text-5xl">
+                Find us in Pedu, Cape Coast.
+            </h2>
+        </div>
+
+        <div class="mt-12 grid gap-5 lg:grid-cols-[1.4fr_0.6fr]">
+            <div
+                class="reveal overflow-hidden rounded-[2.5rem] border border-brand-shadow/10 bg-white shadow-xl shadow-brand-shadow/10"
+            >
+                <iframe
+                    title="Map showing Luna Café & Eatery at Pedu Goil Filling Station, Cape Coast"
+                    src={mapEmbed}
+                    class="block h-[22rem] w-full border-0 sm:h-[30rem]"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    allowfullscreen></iframe>
+            </div>
+
+            <div
+                class="reveal flex flex-col gap-6 rounded-[2.5rem] border border-brand-shadow/10 bg-white/80 p-8"
+                style="--d:120ms"
+            >
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                        Address
+                    </h3>
+                    <p class="mt-2 font-semibold text-brand-shadow">
+                        Pedu Goil Filling Station<br />Pedu, Cape Coast
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                        Hours
+                    </h3>
+                    <ul class="mt-2 space-y-1 text-brand-text/80">
+                        <li class="flex justify-between gap-4"><span>Mon–Thu</span><span>8:00–22:00</span></li>
+                        <li class="flex justify-between gap-4"><span>Fri–Sun</span><span>8:00–23:00</span></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-brand-deep">
+                        Contact
+                    </h3>
+                    <a href="tel:+233593676875" class="mt-2 block font-semibold text-brand-shadow hover:text-brand-deep">
+                        +233 59 367 6875
+                    </a>
+                </div>
+
+                <div class="mt-auto flex flex-col gap-3">
+                    <a
+                        href={mapLink}
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center justify-center gap-2 rounded-full bg-brand-shadow px-6 py-3.5 font-bold text-brand-bg transition hover:-translate-y-0.5 hover:bg-brand-text"
+                    >
+                        Get directions →
+                    </a>
+                    <a
+                        href={whatsapp}
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3.5 font-bold text-brand-text transition hover:-translate-y-0.5 hover:bg-brand-secondary hover:text-white"
+                    >
+                        Order on WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</BaseLayout>

@@ -9,6 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "qa": "astro build && node scripts/qa-check.mjs",
+    "audit:prod": "npm audit --omit=dev",
     "astro": "astro"
   },
   "dependencies": {
