@@ -18,8 +18,6 @@ const CART_KEY = "luna-cart-v1";
 const CUSTOMER_KEY = "luna-customer-v1";
 const MAX_QTY = 20;
 const MAX_LINES = 30;
-const TZ = "Africa/Accra";
-const DAYS: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
 let catalog: Catalog | null = null;
 let index = new Map<string, Item>();
@@ -101,85 +99,13 @@ function resolve(): Resolved[] {
     return out;
 }
 
-/* ---------- opening hours / pickup time (always Africa/Accra time) ---------- */
-
-function accraNow() {
-    const parts = new Intl.DateTimeFormat("en-GB", {
-        timeZone: TZ,
-        weekday: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-    }).formatToParts(new Date());
-    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
-    return {
-        day: DAYS[get("weekday")] ?? 0,
-        minutes: (Number(get("hour")) % 24) * 60 + Number(get("minute")),
-    };
-}
-
-function pickupWindow() {
-    const cat = getCatalog()!;
-    const now = accraNow();
-    const rule = cat.hours.find((r) => r.days.includes(now.day));
-    const isOpen = !!rule && now.minutes >= rule.open && now.minutes < rule.close;
-    let min = 0;
-    let max = -1;
-    if (rule && now.minutes < rule.close) {
-        const earliest = isOpen ? now.minutes + 15 : rule.open;
-        min = Math.ceil(Math.max(rule.open, earliest) / 5) * 5;
-        max = rule.close - 15;
-    }
-    return { isOpen, canLater: min <= max, min, max };
-}
-
-const toHHMM = (m: number) =>
-    `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-
-const toMinutes = (hhmm: string) => {
-    const [hh, mm] = hhmm.split(":").map(Number);
-    return hh * 60 + mm;
-};
-
-function fmtTime(m: number) {
-    const hh = Math.floor(m / 60);
-    return `${hh % 12 || 12}:${String(m % 60).padStart(2, "0")} ${hh < 12 ? "AM" : "PM"}`;
-}
-
-function syncPickupMode() {
-    const later = byId<HTMLInputElement>("pickup-later");
-    const wrap = byId("pickup-time-wrap");
-    if (wrap && later) wrap.hidden = !later.checked;
-}
-
-function setupPickup() {
-    if (!getCatalog()) return;
-    const w = pickupWindow();
-    const notice = byId("pickup-notice");
-    const asap = byId<HTMLInputElement>("pickup-asap");
-    const later = byId<HTMLInputElement>("pickup-later");
-    const asapLabel = byId("pickup-asap-label");
-    const time = byId<HTMLInputElement>("pickup-time");
-    const hint = byId("pickup-hint");
-    if (!notice || !asap || !later || !asapLabel || !time || !hint) return;
-
-    notice.hidden = w.isOpen;
-    notice.textContent = w.isOpen
-        ? ""
-        : "We're closed right now. You can still send your order and we'll confirm it when we open.";
-    asapLabel.textContent = w.isOpen ? "As soon as possible" : "When you open";
-
-    later.disabled = !w.canLater;
-    if (w.canLater) {
-        time.min = toHHMM(w.min);
-        time.max = toHHMM(w.max);
-        if (!time.value || toMinutes(time.value) < w.min) time.value = toHHMM(w.min);
-        hint.textContent = `Today between ${fmtTime(w.min)} and ${fmtTime(w.max)}.`;
-    } else {
-        asap.checked = true;
-        hint.textContent = "";
-    }
-    syncPickupMode();
+function syncFulfillmentMode() {
+    const delivery = byId<HTMLInputElement>("fulfillment-delivery");
+    const pickupFields = byId("pickup-fields");
+    const deliveryFields = byId("delivery-fields");
+    const isDelivery = !!delivery?.checked;
+    if (pickupFields) pickupFields.hidden = isDelivery;
+    if (deliveryFields) deliveryFields.hidden = !isDelivery;
 }
 
 /* ---------- rendering ---------- */
@@ -243,6 +169,10 @@ function render() {
     show("cart-content", count > 0 && !showSuccess);
     show("cart-footer", count > 0 && !showSuccess);
     show("cart-success", showSuccess);
+    show("cart-clear-confirm", false);
+    document.querySelectorAll<HTMLElement>("[data-cart-clear]").forEach((button) => {
+        button.hidden = count === 0 || showSuccess;
+    });
     const totalEl = byId("cart-total");
     if (totalEl) totalEl.textContent = money(total);
 
@@ -314,10 +244,22 @@ function changeQty(id: string, k: string, delta: number) {
 }
 
 function clearCart() {
-    if (!window.confirm("Remove everything from your order?")) return;
     lines = [];
     saveCart();
     render();
+}
+
+function showClearConfirmation() {
+    const confirm = byId<HTMLElement>("cart-clear-confirm");
+    if (!confirm) return;
+    confirm.hidden = false;
+    document.querySelector<HTMLButtonElement>("[data-cart-clear-confirm]")?.focus();
+}
+
+function hideClearConfirmation() {
+    const confirm = byId<HTMLElement>("cart-clear-confirm");
+    if (confirm) confirm.hidden = true;
+    document.querySelector<HTMLButtonElement>("[data-cart-clear]:not([hidden])")?.focus();
 }
 
 function finishOrder() {
@@ -349,7 +291,6 @@ function openCart() {
     const dlg = byId<HTMLDialogElement>("cart-dialog");
     if (!dlg || dlg.open) return;
     render();
-    setupPickup();
     prefillCustomer();
     clearError();
     dlg.showModal();
@@ -357,6 +298,7 @@ function openCart() {
 
 function closeCart() {
     const dlg = byId<HTMLDialogElement>("cart-dialog");
+    hideClearConfirmation();
     if (dlg?.open) dlg.close();
 }
 
@@ -394,9 +336,10 @@ function handleSend() {
     const nameEl = byId<HTMLInputElement>("order-name");
     const phoneEl = byId<HTMLInputElement>("order-phone");
     const noteEl = byId<HTMLTextAreaElement>("order-note");
-    const laterEl = byId<HTMLInputElement>("pickup-later");
-    const timeEl = byId<HTMLInputElement>("pickup-time");
-    if (!nameEl || !phoneEl || !noteEl || !laterEl || !timeEl) return;
+    const deliveryEl = byId<HTMLInputElement>("fulfillment-delivery");
+    const zoneEl = byId<HTMLSelectElement>("delivery-zone");
+    const addressEl = byId<HTMLTextAreaElement>("delivery-address");
+    if (!nameEl || !phoneEl || !noteEl || !deliveryEl || !zoneEl || !addressEl) return;
 
     clearError();
 
@@ -408,20 +351,16 @@ function handleSend() {
         return fail(phoneEl, "Please enter a valid phone number, like 024 123 4567.");
     }
 
-    const w = pickupWindow();
-    let pickup: string;
-    if (laterEl.checked) {
-        if (!w.canLater) {
-            setupPickup();
-            return fail(null, "Pickup later today isn't available right now. We've switched you to the earliest option.");
-        }
-        const m = timeEl.value ? toMinutes(timeEl.value) : NaN;
-        if (!(m >= w.min && m <= w.max)) {
-            return fail(timeEl, `Please pick a time between ${fmtTime(w.min)} and ${fmtTime(w.max)}.`);
-        }
-        pickup = `Today at ${fmtTime(m)}`;
+    const isDelivery = deliveryEl.checked;
+    let fulfillment: string;
+    if (isDelivery) {
+        const zone = zoneEl.value;
+        const address = addressEl.value.trim().replace(/\s+/g, " ");
+        if (!zone) return fail(zoneEl, "Please choose your delivery area.");
+        if (address.length < 5) return fail(addressEl, "Please enter an address, landmark, or Google Maps link.");
+        fulfillment = `Delivery to ${zone}\nAddress: ${address}`;
     } else {
-        pickup = w.isOpen ? "ASAP" : "When you open";
+        fulfillment = "Pickup — staff will notify customer when order is ready";
     }
 
     const note = noteEl.value.trim().replace(/\s+/g, " ").slice(0, 200);
@@ -434,7 +373,7 @@ function handleSend() {
         `*Order ${ref}*`,
         `Name: ${name}`,
         `Phone: ${phone}`,
-        `Pickup: ${pickup}`,
+        `Fulfillment: ${fulfillment}`,
         "",
         ...rows.map(
             ({ line, item, opt }) =>
@@ -443,7 +382,7 @@ function handleSend() {
         "",
         `*Total: ${money(total)}*`,
         ...(note ? [`Note: ${note}`] : []),
-        "Payment: on pickup",
+        isDelivery ? "Delivery fee: To be confirmed" : "Payment: on pickup",
     ].join("\n");
 
     const url = `https://wa.me/${cat.whatsapp}?text=${encodeURIComponent(message)}`;
@@ -480,7 +419,12 @@ document.addEventListener("click", (e) => {
     if (step) return changeQty(step.dataset.id ?? "", step.dataset.k ?? "", Number(step.dataset.qty));
 
     if (t.closest("[data-cart-open]")) return openCart();
-    if (t.closest("[data-cart-clear]")) return clearCart();
+    if (t.closest("[data-cart-clear]")) return showClearConfirmation();
+    if (t.closest("[data-cart-clear-cancel]")) return hideClearConfirmation();
+    if (t.closest("[data-cart-clear-confirm]")) {
+        hideClearConfirmation();
+        return clearCart();
+    }
     if (t.closest("[data-cart-done]")) return finishOrder();
     if (t.closest("[data-cart-back]")) {
         showSuccess = false;
@@ -491,6 +435,12 @@ document.addEventListener("click", (e) => {
     if (t.closest("[data-cart-close]") || t === byId("cart-dialog")) closeCart();
 });
 
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !byId<HTMLElement>("cart-clear-confirm")?.hidden) {
+        hideClearConfirmation();
+    }
+});
+
 document.addEventListener("submit", (e) => {
     if ((e.target as HTMLElement | null)?.id === "order-form") {
         e.preventDefault();
@@ -499,7 +449,9 @@ document.addEventListener("submit", (e) => {
 });
 
 document.addEventListener("change", (e) => {
-    if ((e.target as HTMLElement | null)?.matches?.('input[name="pickup"]')) syncPickupMode();
+    if ((e.target as HTMLElement | null)?.matches?.('input[name="fulfillment"]')) {
+        syncFulfillmentMode();
+    }
 });
 
 // Keep several open tabs in step
@@ -514,7 +466,7 @@ function init() {
     loadCart();
     render();
     prefillCustomer();
-    setupPickup();
+    syncFulfillmentMode();
 }
 
 document.addEventListener("astro:page-load", init);

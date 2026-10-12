@@ -2,7 +2,7 @@
 // src/pages/menu.astro
 import BaseLayout from "../layouts/BaseLayout.astro";
 import menuData from "../data/menu.json";
-import { itemId, optionsFor } from "../lib/menu";
+import { itemId, normalize, optionsFor } from "../lib/menu";
 import { WHATSAPP_NUMBER } from "../lib/config";
 
 // "Savoury Bites & Drinks" -> "savoury-bites-drinks" (matches the /menu#... links on the home and about pages)
@@ -37,11 +37,32 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
         </div>
     </section>
 
+    <!-- Menu search -->
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="rounded-[2rem] border border-brand-shadow/10 bg-white/80 p-5 shadow-sm sm:p-6">
+            <label for="menu-search" class="block text-sm font-bold text-brand-shadow">
+                Search the menu
+            </label>
+            <div class="relative mt-2">
+                <input
+                    id="menu-search"
+                    type="search"
+                    placeholder="Try “chicken”, “coffee”, or “boba”"
+                    autocomplete="off"
+                    class="min-h-12 w-full rounded-full border border-brand-shadow/15 bg-brand-bg py-3 px-5 text-brand-text placeholder:text-brand-text/45 focus:border-brand-secondary focus:outline-none"
+                />
+            </div>
+            <p id="menu-search-status" class="mt-3 text-sm text-brand-text/60" aria-live="polite">
+                Showing all menu items
+            </p>
+        </div>
+    </div>
+
     <!-- Menu sections -->
     <div class="mx-auto max-w-6xl space-y-20 px-4 pt-14 sm:px-6 sm:space-y-28">
         {
             menuData.map((category, i) => (
-                <section id={sectionId(category.name)} class="scroll-mt-28">
+                <section id={sectionId(category.name)} data-menu-category class="scroll-mt-28">
                     <div class="reveal flex items-end gap-4 border-b border-brand-shadow/10 pb-5">
                         <span class="font-heading text-lg font-bold text-brand-secondary">
                             0{i + 1}
@@ -53,7 +74,11 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
 
                     <div class="mt-10 grid gap-5 lg:grid-cols-2">
                         {category.groups.map((group, gi) => (
-                            <div style={`--d:${(gi % 2) * 120}ms`} class="reveal rounded-[2rem] border border-brand-shadow/10 bg-white/80 p-6 shadow-sm transition hover:shadow-xl hover:shadow-brand-shadow/10 sm:p-8">
+                            <div
+                                data-menu-group
+                                style={`--d:${(gi % 2) * 120}ms`}
+                                class="reveal rounded-[2rem] border border-brand-shadow/10 bg-white/80 p-6 shadow-sm transition hover:shadow-xl hover:shadow-brand-shadow/10 sm:p-8"
+                            >
                                 <h3 class="flex items-center gap-3 text-xl font-extrabold text-brand-shadow md:text-2xl">
                                     <span class="h-2 w-2 rounded-full bg-brand-secondary" />
                                     {group.name}
@@ -65,7 +90,13 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
                                         const options = optionsFor(item);
                                         const available = item.available !== false;
                                         return (
-                                            <li class="flex items-center justify-between gap-4 py-3">
+                                            <li
+                                                data-menu-item
+                                                data-search-text={normalize(
+                                                    `${category.name} ${group.name} ${item.name} ${item.description ?? ""}`,
+                                                )}
+                                                class="flex items-center justify-between gap-4 py-3"
+                                            >
                                                 <div class="min-w-0">
                                                     <p class="font-semibold text-brand-text">
                                                         {item.name}
@@ -146,3 +177,54 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
         </div>
     </section>
 </BaseLayout>
+
+<script>
+    const normalizeSearch = (text: string) =>
+        text
+            .toLowerCase()
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, " ")
+            .trim();
+
+    function initMenuSearch() {
+        const input = document.getElementById("menu-search") as HTMLInputElement | null;
+        const status = document.getElementById("menu-search-status");
+        if (!input || !status) return;
+
+        const items = [...document.querySelectorAll<HTMLElement>("[data-menu-item]")];
+        const groups = [...document.querySelectorAll<HTMLElement>("[data-menu-group]")];
+        const categories = [...document.querySelectorAll<HTMLElement>("[data-menu-category]")];
+
+        const update = () => {
+            const query = normalizeSearch(input.value);
+            const terms = query ? query.split(/\s+/) : [];
+            let visibleCount = 0;
+
+            items.forEach((item) => {
+                const searchable = item.dataset.searchText ?? "";
+                const matches = terms.every((term) => searchable.includes(term));
+                item.hidden = !matches;
+                if (matches) visibleCount++;
+            });
+
+            groups.forEach((group) => {
+                group.hidden = !group.querySelector("[data-menu-item]:not([hidden])");
+            });
+            categories.forEach((category) => {
+                category.hidden = !category.querySelector("[data-menu-group]:not([hidden])");
+            });
+
+            status.textContent = query
+                ? visibleCount === 0
+                    ? `No menu items found for “${input.value.trim()}”`
+                    : `${visibleCount} menu item${visibleCount === 1 ? "" : "s"} found`
+                : "Showing all menu items";
+        };
+
+        input.addEventListener("input", update);
+        update();
+    }
+
+    document.addEventListener("astro:page-load", initMenuSearch);
+</script>
