@@ -1,0 +1,263 @@
+---
+// src/components/CartDrawer.astro
+// Order drawer, floating "View order" button, and the menu catalog the cart reads.
+// Rendered once per page by BaseLayout. The logic lives in src/scripts/cart.ts.
+import menuData from "../data/menu.json";
+import type { MenuData } from "../types/menu";
+import { buildCatalog } from "../lib/menu";
+import { WHATSAPP_NUMBER, HOURS } from "../lib/config";
+
+// Sold-out items are left out, so they also drop out of carts saved earlier.
+const items = buildCatalog(menuData as unknown as MenuData)
+    .filter((i) => i.available)
+    .map(({ id, name, options }) => ({ id, name, options }));
+
+const catalogJson = JSON.stringify({ whatsapp: WHATSAPP_NUMBER, hours: HOURS, items }).replace(
+    /</g,
+    "\\u003c",
+);
+
+const field =
+    "mt-1.5 block w-full rounded-2xl border border-brand-shadow/15 bg-white px-4 py-3 text-base text-brand-text outline-none transition placeholder:text-brand-text/40 focus:border-brand-secondary focus:ring-2 focus:ring-brand-primary/60 aria-[invalid=true]:border-red-500";
+const label = "block text-sm font-bold text-brand-shadow";
+const pill =
+    "block cursor-pointer rounded-2xl border border-brand-shadow/15 bg-white px-4 py-3 text-center text-sm font-bold text-brand-shadow transition peer-checked:border-brand-shadow peer-checked:bg-brand-shadow peer-checked:text-brand-bg peer-focus-visible:ring-2 peer-focus-visible:ring-brand-secondary peer-disabled:cursor-not-allowed peer-disabled:opacity-40";
+const pillBtn =
+    "mt-3 flex w-full items-center justify-center gap-2 rounded-full px-6 py-4 font-bold transition active:scale-[.98]";
+---
+
+<script type="application/json" id="menu-data" set:html={catalogJson} />
+
+<!-- Floating button: shown once something is in the order -->
+<button
+    id="cart-fab"
+    type="button"
+    data-cart-open
+    hidden
+    class="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 inline-flex items-center gap-3 rounded-full bg-brand-shadow py-3 pr-5 pl-4 font-bold text-brand-bg shadow-xl shadow-brand-shadow/30 transition hover:bg-brand-deep active:scale-95 sm:right-6 sm:bottom-6"
+    aria-label="View your order"
+>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+    <span class="text-sm">View order</span>
+    <span id="cart-fab-count" class="grid h-6 min-w-6 place-items-center rounded-full bg-brand-primary px-1.5 text-sm text-brand-text">0</span>
+    <span id="cart-fab-total" class="text-sm text-brand-bg/75">GHS 0</span>
+</button>
+
+<dialog id="cart-dialog" class="cart-dialog" aria-labelledby="cart-title">
+    <div class="cart-sheet bg-brand-bg text-brand-text">
+        <header class="flex items-center justify-between gap-4 border-b border-brand-shadow/10 px-5 py-4">
+            <h2 id="cart-title" tabindex="-1" class="text-2xl font-extrabold text-brand-shadow outline-none">
+                Your order
+            </h2>
+            <button
+                type="button"
+                data-cart-close
+                aria-label="Close order"
+                class="grid h-11 w-11 place-items-center rounded-full bg-brand-shadow/10 text-brand-shadow transition hover:bg-brand-primary active:scale-90"
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+            </button>
+        </header>
+
+        <div class="cart-scroll px-5 py-4">
+            <!-- Empty -->
+            <div id="cart-empty" class="py-10 text-center">
+                <p class="text-lg font-bold text-brand-shadow">Your order is empty</p>
+                <p class="mt-2 text-brand-text/65">Tap a price on the menu to add something.</p>
+                <a
+                    href="/menu"
+                    data-cart-close
+                    class="mt-6 inline-flex items-center justify-center rounded-full bg-brand-shadow px-7 py-3.5 font-bold text-brand-bg transition hover:bg-brand-text"
+                >
+                    Browse the menu
+                </a>
+            </div>
+
+            <!-- Order + details -->
+            <div id="cart-content" hidden>
+                <ul id="cart-lines" class="divide-y divide-brand-shadow/10"></ul>
+
+                <form id="order-form" novalidate class="mt-6 space-y-5 border-t border-brand-shadow/10 pt-6">
+                    <p id="cart-error" role="alert" hidden class="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"></p>
+
+                    <div>
+                        <label for="order-name" class={label}>Your name</label>
+                        <input id="order-name" name="name" type="text" autocomplete="name" maxlength="60" required class={field} />
+                    </div>
+
+                    <div>
+                        <label for="order-phone" class={label}>Phone number</label>
+                        <input id="order-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="024 123 4567" required class={field} />
+                    </div>
+
+                    <fieldset>
+                        <legend class={label}>Pickup</legend>
+                        <p id="pickup-notice" hidden class="mt-2 rounded-2xl bg-brand-primary/25 px-4 py-3 text-sm font-medium text-brand-text"></p>
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <label>
+                                <input id="pickup-asap" type="radio" name="pickup" value="asap" checked class="peer sr-only" />
+                                <span id="pickup-asap-label" class={pill}>As soon as possible</span>
+                            </label>
+                            <label>
+                                <input id="pickup-later" type="radio" name="pickup" value="later" class="peer sr-only" />
+                                <span class={pill}>Later today</span>
+                            </label>
+                        </div>
+                        <div id="pickup-time-wrap" hidden class="mt-3">
+                            <label for="pickup-time" class={label}>Pickup time</label>
+                            <input id="pickup-time" type="time" step="300" class={field} />
+                            <p id="pickup-hint" class="mt-1.5 text-xs text-brand-text/60"></p>
+                        </div>
+                    </fieldset>
+
+                    <div>
+                        <label for="order-note" class={label}>Note <span class="font-normal text-brand-text/55">(optional)</span></label>
+                        <textarea id="order-note" name="note" rows="2" maxlength="200" placeholder="e.g. less ice, no onions" class={field}></textarea>
+                    </div>
+
+                    <button type="button" data-cart-clear class="text-sm font-semibold text-brand-text/60 underline underline-offset-4 transition hover:text-brand-shadow">
+                        Clear order
+                    </button>
+                </form>
+            </div>
+
+            <!-- After sending -->
+            <div id="cart-success" hidden class="py-6 text-center">
+                <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-brand-primary text-brand-text">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg>
+                </div>
+                <h3 class="mt-5 text-2xl font-extrabold text-brand-shadow">One last step</h3>
+                <p class="mt-3 text-brand-text/75">
+                    WhatsApp should have opened with your order
+                    <strong id="cart-ref" class="font-extrabold text-brand-shadow"></strong>.
+                    Tap <strong>Send</strong> there so Luna gets it. We'll reply to confirm and tell you when it's ready.
+                </p>
+                <a
+                    id="cart-wa-link"
+                    href="https://wa.me/"
+                    target="_blank"
+                    rel="noopener"
+                    class={`${pillBtn} bg-brand-primary text-brand-text hover:bg-brand-secondary hover:text-white`}
+                >
+                    Open WhatsApp again
+                </a>
+                <button type="button" data-cart-done class={`${pillBtn} bg-brand-shadow text-brand-bg hover:bg-brand-text`}>
+                    I've sent it, clear my order
+                </button>
+                <button type="button" data-cart-back class="mt-4 text-sm font-semibold text-brand-text/60 underline underline-offset-4 transition hover:text-brand-shadow">
+                    Back to my order
+                </button>
+            </div>
+        </div>
+
+        <!-- Sticky total + send button (only while building an order) -->
+        <div id="cart-footer" hidden class="border-t border-brand-shadow/10 bg-white/70 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div class="flex items-baseline justify-between">
+                <span class="font-bold text-brand-text/70">Total</span>
+                <span id="cart-total" class="text-2xl font-extrabold text-brand-shadow">GHS 0</span>
+            </div>
+            <p class="mt-1 text-xs text-brand-text/55">Pay when you pick up. We confirm every order on WhatsApp.</p>
+            <button
+                type="submit"
+                form="order-form"
+                class="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-4 font-bold text-brand-text transition hover:bg-brand-secondary hover:text-white active:scale-[.98]"
+            >
+                Send order on WhatsApp
+            </button>
+        </div>
+    </div>
+</dialog>
+
+<div id="cart-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+    import "../scripts/cart.ts";
+</script>
+
+<style>
+    /* Mobile: bottom sheet. Desktop: drawer from the right. */
+    .cart-dialog {
+        position: fixed;
+        inset: auto 0 0 0;
+        margin: 0 auto;
+        width: 100%;
+        max-width: 32rem;
+        max-height: min(92dvh, 48rem);
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        overflow: visible;
+    }
+    .cart-dialog::backdrop {
+        background: rgb(26 18 8 / 0.5);
+        backdrop-filter: blur(3px);
+    }
+    .cart-sheet {
+        display: flex;
+        flex-direction: column;
+        max-height: min(92dvh, 48rem);
+        overflow: hidden;
+        border-radius: 2rem 2rem 0 0;
+        box-shadow: 0 -20px 60px rgb(0 0 0 / 0.25);
+    }
+    .cart-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .cart-dialog[open] {
+        animation: cart-up 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    .cart-dialog[open]::backdrop {
+        animation: cart-fade 0.25s ease-out;
+    }
+    @media (min-width: 640px) {
+        .cart-dialog {
+            inset: 0 0 0 auto;
+            margin: 0;
+            max-width: 28rem;
+            height: 100dvh;
+            max-height: 100dvh;
+        }
+        .cart-sheet {
+            height: 100%;
+            max-height: 100dvh;
+            border-radius: 2rem 0 0 2rem;
+        }
+        .cart-dialog[open] {
+            animation-name: cart-in;
+        }
+    }
+    @keyframes cart-up {
+        from { transform: translateY(100%); }
+        to { transform: none; }
+    }
+    @keyframes cart-in {
+        from { transform: translateX(100%); }
+        to { transform: none; }
+    }
+    @keyframes cart-fade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .cart-dialog[open],
+        .cart-dialog[open]::backdrop {
+            animation: none;
+        }
+    }
+</style>
+
+<style is:global>
+    /* Stop the page scrolling behind the open order drawer */
+    body:has(#cart-dialog[open]) {
+        overflow: hidden;
+    }
+    /* Make sure [hidden] always wins over display utilities */
+    #cart-dialog [hidden],
+    #cart-fab[hidden] {
+        display: none !important;
+    }
+</style>

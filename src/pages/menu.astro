@@ -2,25 +2,14 @@
 // src/pages/menu.astro
 import BaseLayout from "../layouts/BaseLayout.astro";
 import menuData from "../data/menu.json";
+import { itemId, optionsFor } from "../lib/menu";
+import { WHATSAPP_NUMBER } from "../lib/config";
 
-type Price = { label?: string; value: number };
+// "Savoury Bites & Drinks" -> "savoury-bites-drinks" (matches the /menu#... links on the home and about pages)
+const sectionId = (name: string) =>
+    name.toLowerCase().replace(/&/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
-// Normalises every item shape into a list of price chips.
-function getPrices(item: any): Price[] {
-    const out: Price[] = [];
-    if ("price" in item && item.price !== null) {
-        out.push({ value: item.price });
-    }
-    if ("priceSmall" in item || ("priceLarge" in item && !("priceMedium" in item))) {
-        if (item.priceSmall != null) out.push({ label: "500ml", value: item.priceSmall });
-        if (item.priceLarge != null) out.push({ label: "700ml", value: item.priceLarge });
-    }
-    if ("priceMedium" in item) {
-        if (item.priceMedium != null) out.push({ label: "M", value: item.priceMedium });
-        if (item.priceLarge != null) out.push({ label: "L", value: item.priceLarge });
-    }
-    return out;
-}
+const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
 ---
 
 <BaseLayout
@@ -43,6 +32,7 @@ function getPrices(item: any): Price[] {
             </h1>
             <p class="animate-rise [animation-delay:200ms] mx-auto mt-4 max-w-xl text-brand-text/70">
                 Prices in GHS. Sizes: 500ml / 700ml or M / L where shown.
+                <strong class="font-bold text-brand-shadow">Tap a price to add it to your order.</strong>
             </p>
         </div>
     </section>
@@ -51,7 +41,7 @@ function getPrices(item: any): Price[] {
     <div class="mx-auto max-w-6xl space-y-20 px-4 pt-14 sm:px-6 sm:space-y-28">
         {
             menuData.map((category, i) => (
-                <section>
+                <section id={sectionId(category.name)} class="scroll-mt-28">
                     <div class="reveal flex items-end gap-4 border-b border-brand-shadow/10 pb-5">
                         <span class="font-heading text-lg font-bold text-brand-secondary">
                             0{i + 1}
@@ -70,33 +60,54 @@ function getPrices(item: any): Price[] {
                                 </h3>
 
                                 <ul class="mt-5 divide-y divide-brand-shadow/10">
-                                    {group.items.map((item: any) => (
-                                        <li class="flex items-center justify-between gap-4 py-3">
-                                            <div class="min-w-0">
-                                                <p class="font-semibold text-brand-text">
-                                                    {item.name}
-                                                </p>
-                                                {item.description && (
-                                                    <p class="mt-0.5 text-sm text-brand-text/60">
-                                                        {item.description}
+                                    {group.items.map((item: any) => {
+                                        const id = itemId(group.name, item.name);
+                                        const options = optionsFor(item);
+                                        const available = item.available !== false;
+                                        return (
+                                            <li class="flex items-center justify-between gap-4 py-3">
+                                                <div class="min-w-0">
+                                                    <p class="font-semibold text-brand-text">
+                                                        {item.name}
                                                     </p>
-                                                )}
-                                            </div>
+                                                    {item.description && (
+                                                        <p class="mt-0.5 text-sm text-brand-text/60">
+                                                            {item.description}
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                            <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
-                                                {getPrices(item).map((p) => (
-                                                    <span class="inline-flex items-baseline gap-1.5 rounded-full bg-brand-primary/15 px-3 py-1 text-sm font-bold text-brand-deep">
-                                                        {p.label && (
-                                                            <span class="text-[0.65rem] font-semibold uppercase tracking-wide text-brand-text/55">
-                                                                {p.label}
-                                                            </span>
-                                                        )}
-                                                        <span>GHS {p.value}</span>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </li>
-                                    ))}
+                                                <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
+                                                    {available ? (
+                                                        options.map((o) => (
+                                                            <button
+                                                                type="button"
+                                                                data-add
+                                                                data-id={id}
+                                                                data-opt={o.k}
+                                                                aria-label={`Add ${item.name}${o.label ? ` ${o.label}` : ""}, GHS ${o.price}, to your order`}
+                                                                class="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-brand-primary/15 py-1 pr-1.5 pl-3 text-sm font-bold text-brand-deep transition hover:bg-brand-primary active:scale-95"
+                                                            >
+                                                                {o.label && (
+                                                                    <span class="text-[0.65rem] font-semibold uppercase tracking-wide text-brand-text/55">
+                                                                        {o.label}
+                                                                    </span>
+                                                                )}
+                                                                <span>GHS {o.price}</span>
+                                                                <span aria-hidden="true" class="grid h-7 w-7 place-items-center rounded-full bg-brand-shadow text-base leading-none text-brand-bg">
+                                                                    +
+                                                                </span>
+                                                            </button>
+                                                        ))
+                                                    ) : (
+                                                        <span class="text-sm font-semibold text-brand-text/50">
+                                                            Sold out
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         ))}
@@ -112,17 +123,26 @@ function getPrices(item: any): Price[] {
             <div>
                 <h2 class="text-3xl font-extrabold">Ready to order?</h2>
                 <p class="mt-2 text-brand-bg/70">
-                    Message us on WhatsApp and we'll get it ready.
+                    Tap prices above to build your order, then send it to us on WhatsApp.
                 </p>
             </div>
-            <a
-                href="https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order..."
-                target="_blank"
-                rel="noopener"
-                class="shrink-0 rounded-full bg-brand-primary px-8 py-4 font-bold text-brand-text transition hover:-translate-y-0.5 hover:bg-brand-secondary hover:text-white"
-            >
-                Order on WhatsApp
-            </a>
+            <div class="flex shrink-0 flex-col items-center gap-3 sm:items-end">
+                <button
+                    type="button"
+                    data-cart-open
+                    class="rounded-full bg-brand-primary px-8 py-4 font-bold text-brand-text transition hover:-translate-y-0.5 hover:bg-brand-secondary hover:text-white"
+                >
+                    View my order
+                </button>
+                <a
+                    href={chatLink}
+                    target="_blank"
+                    rel="noopener"
+                    class="text-sm font-semibold text-brand-bg/70 underline underline-offset-4 transition hover:text-brand-primary"
+                >
+                    Or just chat with us on WhatsApp
+                </a>
+            </div>
         </div>
     </section>
 </BaseLayout>

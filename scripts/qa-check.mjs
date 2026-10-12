@@ -74,6 +74,8 @@ try {
                 if (!item.name?.trim()) errors.push(`${where}: empty name`);
                 if (seen.has(item.name)) warnings.push(`${where}: duplicate item name in group`);
                 seen.add(item.name);
+                if ("available" in item && typeof item.available !== "boolean")
+                    errors.push(`${where}: available must be true or false`);
                 const given = priceKeys.filter((k) => k in item);
                 if (given.length === 0) errors.push(`${where}: no price field`);
                 for (const k of given) {
@@ -86,6 +88,45 @@ try {
     }
 } catch (e) {
     errors.push(`menu.json could not be validated: ${e.message}`);
+}
+
+// Ordering catalog (embedded by CartDrawer): unique ids, valid options, and every "Add" button
+// on the built pages must point at a real item + size
+try {
+    const home = readFileSync(join(DIST, "index.html"), "utf8");
+    const raw = home.match(/<script[^>]*id="menu-data"[^>]*>([\s\S]*?)<\/script>/)?.[1];
+    if (!raw) {
+        errors.push("index.html: ordering catalog (#menu-data) not found");
+    } else {
+        const data = JSON.parse(raw);
+        const catalog = new Map();
+        if (!/^\d{10,15}$/.test(data.whatsapp ?? "")) errors.push("ordering catalog: invalid WhatsApp number");
+        if (!Array.isArray(data.hours) || data.hours.length === 0) errors.push("ordering catalog: opening hours missing");
+        for (const item of data.items ?? []) {
+            if (!/^[a-z0-9-]+--[a-z0-9-]+$/.test(item.id ?? "")) errors.push(`ordering catalog: odd id "${item.id}"`);
+            if (catalog.has(item.id)) errors.push(`ordering catalog: duplicate id "${item.id}"`);
+            const keys = new Set();
+            for (const o of item.options ?? []) {
+                if (keys.has(o.k)) errors.push(`ordering catalog: ${item.id} has duplicate option "${o.k}"`);
+                if (typeof o.price !== "number" || !(o.price > 0)) errors.push(`ordering catalog: ${item.id}/${o.k} has a bad price`);
+                keys.add(o.k);
+            }
+            if (keys.size === 0) errors.push(`ordering catalog: ${item.id} has no options`);
+            catalog.set(item.id, keys);
+        }
+        let addButtons = 0;
+        for (const file of htmlFiles) {
+            const html = readFileSync(file, "utf8");
+            for (const m of html.matchAll(/data-add[^>]*?data-id="([^"]+)"[^>]*?data-opt="([^"]+)"/g)) {
+                addButtons++;
+                if (!catalog.get(m[1])?.has(m[2]))
+                    errors.push(`${relative(DIST, file)}: Add button points at unknown item "${m[1]}" / "${m[2]}"`);
+            }
+        }
+        console.log(`Ordering: ${catalog.size} orderable items, ${addButtons} Add buttons checked.`);
+    }
+} catch (e) {
+    errors.push(`ordering catalog could not be validated: ${e.message}`);
 }
 
 console.log(`Checked ${htmlFiles.length} HTML page(s) + menu data.`);

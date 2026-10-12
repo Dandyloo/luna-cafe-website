@@ -2,9 +2,6 @@
 // src/pages/about.astro
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const whatsapp =
-    "https://wa.me/233593676875?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...";
-
 const place = "Pedu Goil Filling Station, Cape Coast, Ghana";
 const mapEmbed = `https://www.google.com/maps?q=${encodeURIComponent(place)}&output=embed`;
 const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
@@ -264,12 +261,10 @@ const visitors = [
                         Get directions →
                     </a>
                     <a
-                        href={whatsapp}
-                        target="_blank"
-                        rel="noopener"
+                        href="/menu"
                         class="inline-flex items-center justify-center rounded-full bg-brand-primary px-6 py-3.5 font-bold text-brand-text transition hover:-translate-y-0.5 hover:bg-brand-secondary hover:text-white"
                     >
-                        Order on WhatsApp
+                        Order from the menu
                     </a>
                 </div>
             </div>

@@ -226,6 +226,7 @@
 /* ---------- Hero card deck (stacked flip) ---------- */
 .hero-deck {
   perspective: 1600px;
+  touch-action: pan-y;
 }
 .hero-card {
   transform-origin: 50% 100%;

@@ -1,6 +1,8 @@
 export type MenuItemBase = {
     name: string;
     description?: string;
+    /** Set to false to show "Sold out" and stop the item being ordered online. */
+    available?: boolean;
 };
 
 export type MenuItemSingle = MenuItemBase & {
