@@ -4,9 +4,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
 // Hero card deck: flips through these every 5 seconds (files live in /public)
 const heroSlides = [
+	{ src: "/boba-hero.avif", alt: "Fresh boba drink at Luna Café" },
 	{ src: "/macha-hero.avif", alt: "Fresh matcha drink at Luna Café" },
 	{ src: "/shawarma-hero.avif", alt: "Loaded shawarma at Luna Café" },
 	{ src: "/pizza-hero.avif", alt: "Luna Special Pizza at Luna Café" },
+	{ src: "/sandwich-hero.avif", alt: "Delicious club sandwich at Luna Café" },
+	{ src: "/jollof-hero.avif", alt: "Delicious Jollof rice at Luna Café" },
+	{ src: "/quiche-pie-hero.webp", alt: "Delicious quiche at Luna Café" },
 ];
 
 const ticker = [
@@ -169,7 +173,7 @@ const offers = [
 				{
 					[
 						["30", "Boba drinks"],
-						["8am", "Opens daily"],
+						["8am–10pm", "Open daily"],
 						["3", "Menu collections"],
 						["GHS 10", "Prices start at"],
 					].map(([value, label], i) => (
