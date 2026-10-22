@@ -5,23 +5,28 @@
 import menuData from "../data/menu.json";
 import type { MenuData } from "../types/menu";
 import { buildCatalog } from "../lib/menu";
-import { WHATSAPP_NUMBER, HOURS } from "../lib/config";
+import { WHATSAPP_NUMBER, HOURS, DELIVERY } from "../lib/config";
 
 // Sold-out items are left out, so they also drop out of carts saved earlier.
 const items = buildCatalog(menuData as unknown as MenuData)
     .filter((i) => i.available)
     .map(({ id, name, options }) => ({ id, name, options }));
 
-const catalogJson = JSON.stringify({ whatsapp: WHATSAPP_NUMBER, hours: HOURS, items }).replace(
-    /</g,
-    "\\u003c",
-);
+const deliveryOn = DELIVERY.enabled;
+
+const catalogJson = JSON.stringify({
+    whatsapp: WHATSAPP_NUMBER,
+    hours: HOURS,
+    delivery: DELIVERY,
+    items,
+}).replace(/</g, "\\u003c");
 
 const field =
     "mt-1.5 block w-full rounded-2xl border border-brand-shadow/15 bg-white px-4 py-3 text-base text-brand-text outline-none transition placeholder:text-brand-text/40 focus:border-brand-secondary focus:ring-2 focus:ring-brand-primary/60 aria-[invalid=true]:border-red-500";
 const label = "block text-sm font-bold text-brand-shadow";
-const pill =
-    "block cursor-pointer rounded-2xl border border-brand-shadow/15 bg-white px-4 py-3 text-center text-sm font-bold text-brand-shadow transition peer-checked:border-brand-shadow peer-checked:bg-brand-shadow peer-checked:text-brand-bg peer-focus-visible:ring-2 peer-focus-visible:ring-brand-secondary peer-disabled:cursor-not-allowed peer-disabled:opacity-40";
+const sectionTitle = "text-xs font-bold uppercase tracking-widest text-brand-deep";
+const modeCard =
+    "flex h-full cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 border-brand-shadow/10 bg-white px-3 py-3.5 text-center transition hover:border-brand-shadow/25 peer-checked:border-brand-primary peer-checked:bg-brand-primary/15 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-secondary";
 const pillBtn =
     "mt-3 flex w-full items-center justify-center gap-2 rounded-full px-6 py-4 font-bold transition active:scale-[.98]";
 ---
@@ -45,27 +50,33 @@ const pillBtn =
 
 <dialog id="cart-dialog" class="cart-dialog" aria-labelledby="cart-title">
     <div class="cart-sheet relative bg-brand-bg text-brand-text">
-        <header class="flex items-center gap-3 border-b border-brand-shadow/10 px-5 py-4">
-            <h2 id="cart-title" tabindex="-1" class="text-2xl font-extrabold text-brand-shadow outline-none">
-                Your order
-            </h2>
-            <div class="ml-auto flex items-center gap-2">
-                <button
-                    type="button"
-                    data-cart-clear
-                    hidden
-                    class="rounded-full px-3 py-2 text-sm font-bold text-brand-text/60 underline underline-offset-4 transition hover:bg-brand-primary/15 hover:text-brand-shadow"
-                >
-                    Clear
-                </button>
-                <button
-                    type="button"
-                    data-cart-close
-                    aria-label="Close order"
-                    class="grid h-11 w-11 place-items-center rounded-full bg-brand-shadow/10 text-brand-shadow transition hover:bg-brand-primary active:scale-90"
-                >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
-                </button>
+        <header class="border-b border-brand-shadow/10 bg-white/60 px-5 pt-3 pb-4">
+            <div class="mx-auto mb-3 h-1.5 w-12 rounded-full bg-brand-shadow/15 sm:hidden" aria-hidden="true"></div>
+            <div class="flex items-center gap-3">
+                <div class="min-w-0">
+                    <p class="text-xs font-bold uppercase tracking-widest text-brand-deep">Luna Café &amp; Eatery</p>
+                    <h2 id="cart-title" tabindex="-1" class="text-3xl font-extrabold text-brand-shadow outline-none">
+                        Your order
+                    </h2>
+                </div>
+                <div class="ml-auto flex items-center gap-2">
+                    <button
+                        type="button"
+                        data-cart-clear
+                        hidden
+                        class="rounded-full px-3 py-2 text-sm font-bold text-brand-text/60 underline underline-offset-4 transition hover:bg-brand-primary/15 hover:text-brand-shadow"
+                    >
+                        Clear
+                    </button>
+                    <button
+                        type="button"
+                        data-cart-close
+                        aria-label="Close order"
+                        class="grid h-11 w-11 place-items-center rounded-full bg-brand-shadow/10 text-brand-shadow transition hover:bg-brand-primary active:scale-90"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -104,10 +115,13 @@ const pillBtn =
             </div>
         </div>
 
-        <div class="cart-scroll px-5 py-4">
+        <div class="cart-scroll px-5 py-5">
             <!-- Empty -->
             <div id="cart-empty" class="py-10 text-center">
-                <p class="text-lg font-bold text-brand-shadow">Your order is empty</p>
+                <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-primary/20 text-brand-deep">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+                </div>
+                <p class="mt-5 text-xl font-extrabold text-brand-shadow">Your order is empty</p>
                 <p class="mt-2 text-brand-text/65">Tap a price on the menu to add something.</p>
                 <a
                     href="/menu"
@@ -120,113 +134,123 @@ const pillBtn =
 
             <!-- Order + details -->
             <div id="cart-content" hidden>
-                <ul id="cart-lines" class="divide-y divide-brand-shadow/10"></ul>
+                <!-- Items -->
+                <section aria-label="Items in your order">
+                    <ul id="cart-lines" class="divide-y divide-brand-shadow/10 rounded-3xl border border-brand-shadow/10 bg-white px-4"></ul>
 
-                <form id="order-form" novalidate class="mt-6 space-y-5 border-t border-brand-shadow/10 pt-6">
-                    <p id="cart-error" role="alert" hidden class="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"></p>
-
-                    <div>
-                        <label for="order-name" class={label}>Your name</label>
-                        <input id="order-name" name="name" type="text" autocomplete="name" maxlength="60" required class={field} />
-                    </div>
-
-                    <div>
-                        <label for="order-phone" class={label}>Phone number</label>
-                        <input id="order-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required class={field} />
-                    </div>
-
-                    <fieldset>
-                        <legend class={label}>How would you like your order?</legend>
-                        <div class="mt-2 grid grid-cols-2 gap-2">
-                            <label>
-                                <input id="fulfillment-pickup" type="radio" name="fulfillment" value="pickup" checked class="peer sr-only" />
-                                <span class={pill}>Pickup</span>
-                            </label>
-                            <label>
-                                <input id="fulfillment-delivery" type="radio" name="fulfillment" value="delivery" class="peer sr-only" />
-                                <span class={pill}>Delivery</span>
-                            </label>
+                    <dl class="mt-3 space-y-1.5 px-2 text-sm">
+                        <div class="flex items-baseline justify-between">
+                            <dt class="font-semibold text-brand-text/70">Subtotal</dt>
+                            <dd id="cart-subtotal" class="font-bold text-brand-shadow">GHS 0</dd>
                         </div>
-
-                        <div id="pickup-fields" class="mt-4 rounded-2xl bg-brand-primary/25 px-4 py-3 text-sm font-medium text-brand-text">
-                            We'll notify you on WhatsApp when your order is ready for pickup.
+                        <div id="cart-delivery-row" hidden class="flex items-baseline justify-between">
+                            <dt class="font-semibold text-brand-text/70">Delivery</dt>
+                            <dd id="cart-delivery-fee" class="font-bold text-brand-shadow"></dd>
                         </div>
+                    </dl>
+                </section>
 
-                        <div id="delivery-fields" hidden class="mt-4 space-y-3">
-                            <div>
-                                <label for="delivery-zone" class={label}>Delivery area</label>
-                                <div class="relative mt-1.5">
-                                    <select
-                                        id="delivery-zone"
-                                        class={`${field} mt-0 appearance-none pr-12`}
-                                    >
-                                        <option value="">Choose your area</option>
-                                        <option>Pedu</option>
-                                        <option>Abura</option>
-                                        <option>UCC / Amamoma</option>
-                                        <option>Kwaprow</option>
-                                        <option>Apewosika</option>
-                                        <option>Ola</option>
-                                        <option>Kotokuraba</option>
-                                        <option>Adisadel</option>
-                                        <option>Interberton</option>
-                                        <option>Other Cape Coast area</option>
-                                    </select>
-                                    <svg
-                                        class="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-brand-secondary"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2.5"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        aria-hidden="true"
-                                    >
-                                        <path d="m6 9 6 6 6-6"></path>
-                                    </svg>
+                <form id="order-form" novalidate class="mt-6 space-y-6 border-t border-brand-shadow/10 pt-6">
+                    <!-- Pickup or delivery -->
+                    {deliveryOn ? (
+                        <fieldset>
+                            <legend class={sectionTitle}>How would you like it?</legend>
+                            <div class="mt-3 grid grid-cols-2 gap-2.5">
+                                <div>
+                                    <input class="peer sr-only" type="radio" name="mode" id="mode-pickup" value="pickup" checked />
+                                    <label for="mode-pickup" class={modeCard}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-brand-deep"><path d="M6 7h12l-1 13H7L6 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+                                        <span class="font-extrabold text-brand-shadow">Pickup</span>
+                                        <span class="text-xs text-brand-text/60">Collect at the café</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <input class="peer sr-only" type="radio" name="mode" id="mode-delivery" value="delivery" />
+                                    <label for="mode-delivery" class={modeCard}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-brand-deep"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                                        <span class="font-extrabold text-brand-shadow">Delivery</span>
+                                        <span class="text-xs text-brand-text/60">Rider calls you</span>
+                                    </label>
                                 </div>
                             </div>
-                            <div>
-                                <label for="delivery-address" class={label}>Address, landmark, or Google Maps link</label>
-                                <textarea
-                                    id="delivery-address"
-                                    rows="2"
-                                    maxlength="300"
-                                    placeholder="Type an address or paste a Google Maps link"
-                                    class={field}
-                                ></textarea>
-                                <p class="mt-1.5 text-xs text-brand-text/60">
-                                    We'll notify you on WhatsApp when your order is ready. Delivery fee will be confirmed there too.
-                                </p>
-                            </div>
+                        </fieldset>
+                    ) : (
+                        <input type="hidden" name="mode" value="pickup" />
+                    )}
+
+                    <!-- Contact details -->
+                    <fieldset class="space-y-4">
+                        <legend class={sectionTitle}>Your details</legend>
+                        <div>
+                            <label for="order-name" class={label}>Your name</label>
+                            <input id="order-name" name="name" type="text" autocomplete="name" maxlength="60" required class={field} />
+                        </div>
+
+                        <div>
+                            <label for="order-phone" class={label}>Phone number</label>
+                            <input id="order-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required placeholder="024 123 4567" class={field} />
                         </div>
                     </fieldset>
+
+                    <div id="mode-note" class="rounded-2xl bg-brand-primary/25 px-4 py-3 text-sm font-medium text-brand-text">
+                        We'll notify you on WhatsApp when your order is ready for pickup.
+                    </div>
 
                     <div>
                         <label for="order-note" class={label}>Note <span class="font-normal text-brand-text/55">(optional)</span></label>
                         <textarea id="order-note" name="note" rows="2" maxlength="200" placeholder="e.g. less ice, no onions" class={field}></textarea>
                     </div>
-
                 </form>
             </div>
 
             <!-- After sending -->
-            <div id="cart-success" hidden class="py-6 text-center">
+            <div id="cart-success" hidden class="py-4 text-center">
                 <div class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-brand-primary text-brand-text">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg>
                 </div>
-                <h3 class="mt-5 text-2xl font-extrabold text-brand-shadow">One last step</h3>
-                <p class="mt-3 text-brand-text/75">
-                    WhatsApp should have opened with your order
-                    <strong id="cart-ref" class="font-extrabold text-brand-shadow"></strong>.
-                    Tap <strong>Send</strong> there so Luna gets it. We'll reply to confirm and tell you when it's ready.
+                <h3 class="mt-5 text-3xl font-extrabold text-brand-shadow">One last step</h3>
+                <p class="mt-2 text-brand-text/75">
+                    WhatsApp should have opened with your order. Tap <strong>Send</strong> there so Luna gets it.
                 </p>
+
+                <div class="mt-6 rounded-3xl border-2 border-dashed border-brand-shadow/25 bg-white px-5 py-4 text-left">
+                    <div class="flex items-center justify-between gap-3">
+                        <span class="text-xs font-bold uppercase tracking-widest text-brand-text/55">Order</span>
+                        <strong id="cart-ref" class="font-heading text-2xl font-extrabold tracking-wider text-brand-shadow"></strong>
+                    </div>
+                    <dl class="mt-3 space-y-1.5 border-t border-dashed border-brand-shadow/20 pt-3 text-sm">
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-brand-text/65">Type</dt>
+                            <dd id="cart-success-type" class="font-bold text-brand-shadow"></dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-brand-text/65">Total</dt>
+                            <dd id="cart-success-total" class="text-right font-bold text-brand-shadow"></dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <ol class="mt-6 space-y-3 text-left text-sm text-brand-text/80">
+                    <li class="flex items-start gap-3">
+                        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-shadow text-xs font-bold text-brand-bg">1</span>
+                        <span>Tap <strong>Send</strong> in WhatsApp.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-shadow text-xs font-bold text-brand-bg">2</span>
+                        <span>We reply to confirm your order.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-shadow text-xs font-bold text-brand-bg">3</span>
+                        <span id="cart-success-next"></span>
+                    </li>
+                </ol>
+
                 <a
                     id="cart-wa-link"
                     href="https://wa.me/"
                     target="_blank"
                     rel="noopener"
-                    class={`${pillBtn} bg-brand-primary text-brand-text hover:bg-brand-secondary hover:text-white`}
+                    class={`${pillBtn} mt-6 bg-brand-primary text-brand-text hover:bg-brand-secondary hover:text-white`}
                 >
                     Open WhatsApp again
                 </a>
@@ -240,18 +264,23 @@ const pillBtn =
         </div>
 
         <!-- Sticky total + send button (only while building an order) -->
-        <div id="cart-footer" hidden class="border-t border-brand-shadow/10 bg-white/70 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div id="cart-footer" hidden class="border-t border-brand-shadow/10 bg-white/80 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_30px_-20px_rgb(68_45_39/0.5)]">
+            <p id="cart-error" role="alert" hidden class="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"></p>
+            <p id="cart-closed" hidden class="mb-3 rounded-2xl bg-brand-accent/30 px-4 py-3 text-sm font-medium text-brand-text"></p>
+
             <div class="flex items-baseline justify-between">
                 <span class="font-bold text-brand-text/70">Total</span>
                 <span id="cart-total" class="text-2xl font-extrabold text-brand-shadow">GHS 0</span>
             </div>
-            <p class="mt-1 text-xs text-brand-text/55">Pay when you pick up. We confirm every order on WhatsApp.</p>
+            <p id="cart-total-note" hidden class="text-right text-xs font-semibold text-brand-deep">+ delivery fee, confirmed on WhatsApp</p>
+            <p id="cart-pay-note" class="mt-1 text-xs text-brand-text/55">Pay when you pick up. We confirm every order on WhatsApp.</p>
             <button
                 type="submit"
                 form="order-form"
-                class="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-4 font-bold text-brand-text transition hover:bg-brand-secondary hover:text-white active:scale-[.98]"
+                class="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-6 py-4 font-bold text-brand-text shadow-lg shadow-brand-primary/30 transition hover:bg-brand-secondary hover:text-white active:scale-[.98]"
             >
-                Send order on WhatsApp
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.7-5.2A8.5 8.5 0 1 1 21 12Z"></path></svg>
+                <span id="cart-submit-label">Send pickup order on WhatsApp</span>
             </button>
         </div>
     </div>
@@ -348,5 +377,12 @@ const pillBtn =
     #cart-dialog [hidden],
     #cart-fab[hidden] {
         display: none !important;
+    }
+    /* Reset browser fieldset chrome so the delivery/details groups lay out like plain blocks */
+    #order-form fieldset {
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
     }
 </style>

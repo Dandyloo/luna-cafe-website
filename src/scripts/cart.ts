@@ -1,5 +1,5 @@
 // src/scripts/cart.ts
-// WhatsApp-first ordering cart. Everything runs in the browser, with no backend.
+// WhatsApp-first ordering cart (pickup or delivery). Everything runs in the browser, with no backend.
 //
 // - The cart is stored in localStorage as {id, option, qty} only. Names and prices always
 //   come from the menu catalog embedded in the page (#menu-data, see CartDrawer.astro),
@@ -10,20 +10,23 @@
 type Option = { k: string; label: string; price: number };
 type Item = { id: string; name: string; options: Option[] };
 type HoursRule = { days: number[]; open: number; close: number };
-type Catalog = { whatsapp: string; hours: HoursRule[]; items: Item[] };
+type Delivery = { enabled: boolean };
+type Catalog = { whatsapp: string; hours: HoursRule[]; delivery: Delivery; items: Item[] };
 type Line = { id: string; k: string; q: number };
 type Resolved = { line: Line; item: Item; opt: Option };
+type Mode = "pickup" | "delivery";
 
 const CART_KEY = "luna-cart-v1";
 const CUSTOMER_KEY = "luna-customer-v1";
 const MAX_QTY = 20;
 const MAX_LINES = 30;
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 let catalog: Catalog | null = null;
 let index = new Map<string, Item>();
 let lines: Line[] = [];
+let mode: Mode = "pickup";
 let showSuccess = false;
-let lastOrder: { ref: string; url: string } | null = null;
 
 const byId = <T extends HTMLElement = HTMLElement>(id: string) =>
     document.getElementById(id) as T | null;
@@ -46,6 +49,11 @@ const show = (id: string, on: boolean) => {
     if (el) el.hidden = !on;
 };
 
+const setText = (id: string, text: string) => {
+    const el = byId(id);
+    if (el) el.textContent = text;
+};
+
 /* ---------- catalog + storage ---------- */
 
 function getCatalog(): Catalog | null {
@@ -53,13 +61,17 @@ function getCatalog(): Catalog | null {
     const raw = byId("menu-data")?.textContent;
     if (!raw) return null;
     try {
-        catalog = JSON.parse(raw) as Catalog;
+        const parsed = JSON.parse(raw) as Catalog;
+        parsed.delivery ??= { enabled: false };
+        catalog = parsed;
         index = new Map(catalog.items.map((i) => [i.id, i]));
     } catch {
         return null;
     }
     return catalog;
 }
+
+const deliveryEnabled = () => !!getCatalog()?.delivery.enabled;
 
 function loadCart() {
     lines = [];
@@ -99,13 +111,66 @@ function resolve(): Resolved[] {
     return out;
 }
 
-function syncFulfillmentMode() {
-    const delivery = byId<HTMLInputElement>("fulfillment-delivery");
-    const pickupFields = byId("pickup-fields");
-    const deliveryFields = byId("delivery-fields");
-    const isDelivery = !!delivery?.checked;
-    if (pickupFields) pickupFields.hidden = isDelivery;
-    if (deliveryFields) deliveryFields.hidden = !isDelivery;
+/* ---------- pickup / delivery ---------- */
+
+/** Delivery fee is never calculated on the site: Luna confirms it on WhatsApp. */
+function deliveryFee(): { known: boolean; fee: number } {
+    return mode === "delivery" ? { known: false, fee: 0 } : { known: true, fee: 0 };
+}
+
+function setMode(next: Mode) {
+    mode = next === "delivery" && deliveryEnabled() ? "delivery" : "pickup";
+}
+
+function renderMode() {
+    const del = mode === "delivery";
+    const radio = byId<HTMLInputElement>(del ? "mode-delivery" : "mode-pickup");
+    if (radio && !radio.checked) radio.checked = true;
+
+    show("cart-delivery-row", del);
+    setText(
+        "mode-note",
+        del
+            ? "No address needed. Our rider will call you to ask where you are, and we'll confirm the delivery fee on WhatsApp."
+            : "We'll notify you on WhatsApp when your order is ready for pickup.",
+    );
+    setText(
+        "cart-pay-note",
+        del
+            ? "Pay when your order arrives. We confirm every order on WhatsApp."
+            : "Pay when you pick up. We confirm every order on WhatsApp.",
+    );
+    setText("cart-submit-label", del ? "Send delivery order on WhatsApp" : "Send pickup order on WhatsApp");
+}
+
+/* ---------- opening hours ---------- */
+
+const clock = (mins: number) => `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, "0")}`;
+
+/** Luna's hours are in Africa/Accra time, which is GMT all year, so UTC works as-is. */
+function closedMessage(): string | null {
+    const hours = getCatalog()?.hours;
+    if (!hours?.length) return null;
+    const now = new Date();
+    const day = now.getUTCDay();
+    const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const today = hours.find((r) => r.days.includes(day));
+    if (today && mins >= today.open && mins < today.close) return null;
+
+    let when = "";
+    if (today && mins < today.open) {
+        when = `today at ${clock(today.open)}`;
+    } else {
+        for (let i = 1; i <= 7; i++) {
+            const d = (day + i) % 7;
+            const rule = hours.find((r) => r.days.includes(d));
+            if (rule) {
+                when = `${i === 1 ? "tomorrow" : DAYS[d]} at ${clock(rule.open)}`;
+                break;
+            }
+        }
+    }
+    return `We're closed right now${when ? ` and open again ${when}` : ""}. You can still send your order and we'll reply once we're open.`;
 }
 
 /* ---------- rendering ---------- */
@@ -127,11 +192,11 @@ function stepButton(line: Line, delta: number, aria: string, text: string) {
 
 function lineRow({ line, item, opt }: Resolved) {
     const label = item.name + (opt.label ? ` ${opt.label}` : "");
-    const li = h("li", "flex items-center gap-3 py-3");
+    const li = h("li", "flex items-center gap-3 py-3.5");
 
     const info = h("div", "min-w-0 flex-1");
     info.append(
-        h("p", "font-semibold text-brand-text", item.name),
+        h("p", "font-semibold leading-snug text-brand-text", item.name),
         h("p", "text-sm text-brand-text/60", [opt.label, money(opt.price)].filter(Boolean).join(" · ")),
     );
 
@@ -150,20 +215,21 @@ function render() {
     if (!getCatalog()) return;
     const rows = resolve();
     const count = rows.reduce((n, r) => n + r.line.q, 0);
-    const total = rows.reduce((n, r) => n + r.line.q * r.opt.price, 0);
+    const subtotal = rows.reduce((n, r) => n + r.line.q * r.opt.price, 0);
+    const { known, fee } = deliveryFee();
+    const total = subtotal + fee;
+    const del = mode === "delivery";
 
     const fab = byId("cart-fab");
     if (fab) {
         fab.hidden = count === 0;
         fab.setAttribute(
             "aria-label",
-            `View your order: ${count} ${count === 1 ? "item" : "items"}, ${money(total)}`,
+            `View your order: ${count} ${count === 1 ? "item" : "items"}, ${money(subtotal)}`,
         );
     }
-    const fabCount = byId("cart-fab-count");
-    if (fabCount) fabCount.textContent = String(count);
-    const fabTotal = byId("cart-fab-total");
-    if (fabTotal) fabTotal.textContent = money(total);
+    setText("cart-fab-count", String(count));
+    setText("cart-fab-total", money(subtotal));
 
     show("cart-empty", count === 0 && !showSuccess);
     show("cart-content", count > 0 && !showSuccess);
@@ -173,8 +239,16 @@ function render() {
     document.querySelectorAll<HTMLElement>("[data-cart-clear]").forEach((button) => {
         button.hidden = count === 0 || showSuccess;
     });
-    const totalEl = byId("cart-total");
-    if (totalEl) totalEl.textContent = money(total);
+
+    renderMode();
+    setText("cart-subtotal", money(subtotal));
+    setText("cart-delivery-fee", known ? (fee === 0 ? "Free" : money(fee)) : "Confirmed on WhatsApp");
+    setText("cart-total", money(total));
+    show("cart-total-note", del && !known);
+
+    const closed = closedMessage();
+    setText("cart-closed", closed ?? "");
+    show("cart-closed", !!closed && count > 0 && !showSuccess);
 
     const list = byId("cart-lines");
     if (!list) return;
@@ -266,33 +340,56 @@ function finishOrder() {
     lines = [];
     saveCart();
     showSuccess = false;
-    lastOrder = null;
     const note = byId<HTMLTextAreaElement>("order-note");
     if (note) note.value = "";
     render();
     closeCart();
 }
 
-/* ---------- dialog ---------- */
+/* ---------- customer details ---------- */
 
-function prefillCustomer() {
+function saveCustomer(details: Record<string, string>) {
     try {
-        const saved = JSON.parse(localStorage.getItem(CUSTOMER_KEY) ?? "null");
-        const name = byId<HTMLInputElement>("order-name");
-        const phone = byId<HTMLInputElement>("order-phone");
-        if (saved && name && !name.value) name.value = String(saved.name ?? "").slice(0, 60);
-        if (saved && phone && !phone.value) phone.value = String(saved.phone ?? "").slice(0, 20);
+        localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ ...details, mode }));
     } catch {
         /* ignore */
     }
 }
 
+/** Remember just the pickup/delivery choice (the other details are saved when an order is sent). */
+function persistMode() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CUSTOMER_KEY) ?? "{}") ?? {};
+        localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ ...saved, mode }));
+    } catch {
+        /* ignore */
+    }
+}
+
+function prefillCustomer() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CUSTOMER_KEY) ?? "null");
+        if (!saved) return;
+        const fill = (id: string, value: unknown, max: number) => {
+            const el = byId<HTMLInputElement | HTMLTextAreaElement>(id);
+            if (el && !el.value) el.value = String(value ?? "").slice(0, max);
+        };
+        fill("order-name", saved.name, 60);
+        fill("order-phone", saved.phone, 20);
+        setMode(saved.mode === "delivery" ? "delivery" : "pickup");
+    } catch {
+        /* ignore */
+    }
+}
+
+/* ---------- dialog ---------- */
+
 function openCart() {
     const dlg = byId<HTMLDialogElement>("cart-dialog");
     if (!dlg || dlg.open) return;
-    render();
     prefillCustomer();
     clearError();
+    render();
     dlg.showModal();
 }
 
@@ -328,6 +425,22 @@ function makeRef() {
     return "LN-" + Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
 }
 
+/**
+ * Opens WhatsApp from the submit gesture. A real link click is more reliable than window.open
+ * (popup blockers, in-app browsers, and the Cross-Origin-Opener-Policy header all interfere with
+ * window.open). If the browser still blocks it, the success screen has an "Open WhatsApp again" link.
+ */
+function openWhatsApp(url: string) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.hidden = true;
+    document.body.append(a);
+    a.click();
+    a.remove();
+}
+
 function handleSend() {
     const cat = getCatalog();
     const rows = resolve();
@@ -336,12 +449,10 @@ function handleSend() {
     const nameEl = byId<HTMLInputElement>("order-name");
     const phoneEl = byId<HTMLInputElement>("order-phone");
     const noteEl = byId<HTMLTextAreaElement>("order-note");
-    const deliveryEl = byId<HTMLInputElement>("fulfillment-delivery");
-    const zoneEl = byId<HTMLSelectElement>("delivery-zone");
-    const addressEl = byId<HTMLTextAreaElement>("delivery-address");
-    if (!nameEl || !phoneEl || !noteEl || !deliveryEl || !zoneEl || !addressEl) return;
+    if (!nameEl || !phoneEl || !noteEl) return;
 
     clearError();
+    const delivery = mode === "delivery";
 
     const name = nameEl.value.trim().replace(/\s+/g, " ");
     const phone = phoneEl.value.trim();
@@ -351,59 +462,59 @@ function handleSend() {
         return fail(phoneEl, "Please enter a valid phone number, like 024 123 4567.");
     }
 
-    const isDelivery = deliveryEl.checked;
-    let fulfillment: string;
-    if (isDelivery) {
-        const zone = zoneEl.value;
-        const address = addressEl.value.trim().replace(/\s+/g, " ");
-        if (!zone) return fail(zoneEl, "Please choose your delivery area.");
-        if (address.length < 5) return fail(addressEl, "Please enter an address, landmark, or Google Maps link.");
-        fulfillment = `Delivery to ${zone}\nAddress: ${address}`;
-    } else {
-        fulfillment = "Pickup — staff will notify customer when order is ready";
-    }
-
     const note = noteEl.value.trim().replace(/\s+/g, " ").slice(0, 200);
-    const total = rows.reduce((n, r) => n + r.line.q * r.opt.price, 0);
+    const subtotal = rows.reduce((n, r) => n + r.line.q * r.opt.price, 0);
+    const { known, fee } = deliveryFee();
+    const total = subtotal + fee;
     const ref = makeRef();
 
+    const feeText = known ? (fee === 0 ? "Free" : money(fee)) : "to be confirmed";
     const message = [
         "Hi Luna! I'd like to place an order from your website.",
         "",
         `*Order ${ref}*`,
+        delivery ? "*Delivery* (rider will call me for my location)" : "*Pickup* (please message me when it's ready)",
         `Name: ${name}`,
         `Phone: ${phone}`,
-        `Fulfillment: ${fulfillment}`,
         "",
         ...rows.map(
             ({ line, item, opt }) =>
                 `- ${line.q} x ${item.name}${opt.label ? ` (${opt.label})` : ""} - ${money(line.q * opt.price)}`,
         ),
         "",
-        `*Total: ${money(total)}*`,
+        ...(delivery
+            ? [`Subtotal: ${money(subtotal)}`, `Delivery fee: ${feeText}`]
+            : []),
+        delivery && !known ? `*Items total: ${money(subtotal)}* (+ delivery fee)` : `*Total: ${money(total)}*`,
         ...(note ? [`Note: ${note}`] : []),
-        isDelivery ? "Delivery fee: To be confirmed" : "Payment: on pickup",
+        `Payment: on ${delivery ? "delivery" : "pickup"}`,
     ].join("\n");
 
     const url = `https://wa.me/${cat.whatsapp}?text=${encodeURIComponent(message)}`;
 
-    try {
-        localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name, phone }));
-    } catch {
-        /* ignore */
-    }
+    saveCustomer({ name, phone });
+
+    openWhatsApp(url);
 
     // We can't tell whether the customer actually taps "Send" inside WhatsApp, so the cart is
     // kept until they confirm they sent it.
-    lastOrder = { ref, url };
     showSuccess = true;
-    const refEl = byId("cart-ref");
-    if (refEl) refEl.textContent = ref;
+    setText("cart-ref", ref);
+    setText("cart-success-type", delivery ? "Delivery" : "Pickup");
+    setText(
+        "cart-success-total",
+        delivery && !known ? `${money(subtotal)} + delivery fee` : money(total),
+    );
+    setText(
+        "cart-success-next",
+        delivery
+            ? "Our rider will call you for your location, and we confirm the delivery fee."
+            : "We message you when it's ready for pickup.",
+    );
     const link = byId<HTMLAnchorElement>("cart-wa-link");
     if (link) link.href = url;
     render();
     byId("cart-title")?.focus();
-    window.open(url, "_blank", "noopener");
 }
 
 /* ---------- wiring (document-level, so it survives page transitions) ---------- */
@@ -435,6 +546,18 @@ document.addEventListener("click", (e) => {
     if (t.closest("[data-cart-close]") || t === byId("cart-dialog")) closeCart();
 });
 
+// Pickup / delivery switch and delivery area
+document.addEventListener("change", (e) => {
+    const t = e.target as HTMLInputElement | HTMLSelectElement | null;
+    if (!t) return;
+    if (t.name === "mode") {
+        setMode(t.value === "delivery" ? "delivery" : "pickup");
+        persistMode();
+        clearError();
+        render();
+    }
+});
+
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !byId<HTMLElement>("cart-clear-confirm")?.hidden) {
         hideClearConfirmation();
@@ -448,12 +571,6 @@ document.addEventListener("submit", (e) => {
     }
 });
 
-document.addEventListener("change", (e) => {
-    if ((e.target as HTMLElement | null)?.matches?.('input[name="fulfillment"]')) {
-        syncFulfillmentMode();
-    }
-});
-
 // Keep several open tabs in step
 window.addEventListener("storage", (e) => {
     if (e.key === CART_KEY) {
@@ -464,9 +581,8 @@ window.addEventListener("storage", (e) => {
 
 function init() {
     loadCart();
-    render();
     prefillCustomer();
-    syncFulfillmentMode();
+    render();
 }
 
 document.addEventListener("astro:page-load", init);

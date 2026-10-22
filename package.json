@@ -10,6 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "qa": "astro build && node scripts/qa-check.mjs",
+    "icons": "node scripts/generate-icons.mjs",
     "audit:prod": "npm audit --omit=dev",
     "astro": "astro"
   },
@@ -17,6 +18,9 @@
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.7",
     "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
   },
   "allowScripts": {
     "esbuild": true

@@ -8,6 +8,11 @@ const DIST = "dist";
 const errors = [];
 const warnings = [];
 
+// SITE_URL from the environment or a local .env file (same places astro.config.mjs looks)
+const siteUrl =
+    process.env.SITE_URL ||
+    (existsSync(".env") ? readFileSync(".env", "utf8").match(/^\s*SITE_URL\s*=\s*["']?([^"'\s#]+)/m)?.[1] : undefined);
+
 if (!existsSync(DIST)) {
     console.error("dist/ not found. Run `npm run build` first (or use `npm run qa`).");
     process.exit(1);
@@ -60,6 +65,79 @@ for (const file of htmlFiles) {
     }
 
     if (/href="http:\/\//.test(html)) warn("insecure http:// link found");
+
+    // Structured data must be valid JSON; the home page carries the local business listing
+    const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    const blocks = [];
+    for (const m of ld) {
+        try {
+            blocks.push(JSON.parse(m[1]));
+        } catch {
+            err("invalid JSON-LD");
+        }
+    }
+    if (!is404 && blocks.length === 0) err("no JSON-LD structured data");
+    const biz = blocks.find((b) => b["@type"] === "CafeOrCoffeeShop");
+    if (biz) {
+        for (const k of ["name", "telephone", "address", "openingHoursSpecification", "priceRange"])
+            if (!biz[k]) err(`local business JSON-LD is missing "${k}"`);
+        if (!biz.address?.addressLocality) err("local business JSON-LD: address has no addressLocality");
+    }
+}
+
+// Launch checks: icons, manifest, social image, sitemap and leftovers
+const dist = (f) => join(DIST, f);
+const home0 = existsSync(dist("index.html")) ? readFileSync(dist("index.html"), "utf8") : "";
+
+for (const f of ["favicon.ico", "favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "og-image.jpg", "site.webmanifest"]) {
+    if (!existsSync(dist(f))) errors.push(`missing /${f} (run \`npm run icons\` and rebuild)`);
+}
+if (existsSync(dist("favicon.svg")) && readFileSync(dist("favicon.svg"), "utf8").includes("M50.4 78.5"))
+    errors.push("favicon.svg is still the default Astro icon (run `npm run icons`)");
+for (const rel of ["favicon.ico", "favicon.svg", "apple-touch-icon.png", "site.webmanifest"]) {
+    if (!home0.includes(`href="/${rel}"`)) errors.push(`index.html does not link /${rel}`);
+}
+if (existsSync(dist("site.webmanifest"))) {
+    try {
+        const manifest = JSON.parse(readFileSync(dist("site.webmanifest"), "utf8"));
+        for (const icon of manifest.icons ?? [])
+            if (!existsSync(dist(icon.src.replace(/^\//, "")))) errors.push(`site.webmanifest: icon ${icon.src} does not exist`);
+        if (!manifest.name || !manifest.start_url) errors.push("site.webmanifest: name or start_url missing");
+    } catch {
+        errors.push("site.webmanifest is not valid JSON");
+    }
+}
+if (existsSync(dist("og-image.jpg")) && statSync(dist("og-image.jpg")).size > 300 * 1024)
+    warnings.push("og-image.jpg is over 300 KB (WhatsApp may skip big previews)");
+
+if (!siteUrl) {
+    warnings.push("SITE_URL is not set: canonical links, sitemap, robots and social-share URLs are incomplete. Build for production with SITE_URL=https://your-domain");
+} else {
+    const sm = existsSync(dist("sitemap.xml")) ? readFileSync(dist("sitemap.xml"), "utf8") : "";
+    for (const p of ["/", "/menu/", "/about/"])
+        if (!sm.includes(`<loc>${new URL(p, siteUrl).href}</loc>`)) errors.push(`sitemap.xml is missing ${p}`);
+    const robots = existsSync(dist("robots.txt")) ? readFileSync(dist("robots.txt"), "utf8") : "";
+    if (!robots.includes("Sitemap:")) errors.push("robots.txt has no Sitemap line");
+}
+
+// Vercel ignores public/_headers, so the same headers must live in vercel.json (and stay in sync)
+try {
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8"));
+    if (vercel.trailingSlash !== true) errors.push("vercel.json: trailingSlash must be true (canonical URLs and the sitemap end in a slash)");
+    const cspOf = (headers) => headers?.find((h) => h.key === "Content-Security-Policy")?.value;
+    const vercelCsp = cspOf(vercel.headers?.flatMap((r) => r.headers ?? []));
+    const fileCsp = readFileSync("public/_headers", "utf8").match(/Content-Security-Policy:\s*(.+)/)?.[1]?.trim();
+    if (!vercelCsp) errors.push("vercel.json: Content-Security-Policy header missing");
+    else if (fileCsp && vercelCsp !== fileCsp) errors.push("vercel.json and public/_headers have different Content-Security-Policy values (keep them identical)");
+    for (const k of ["Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy"])
+        if (!JSON.stringify(vercel.headers ?? []).includes(k)) errors.push(`vercel.json: ${k} header missing`);
+} catch (e) {
+    errors.push(`vercel.json could not be validated: ${e.message}`);
+}
+
+for (const file of htmlFiles) {
+    const html = readFileSync(file, "utf8");
+    if (/localhost|127\.0\.0\.1|lorem ipsum|TODO|FIXME/i.test(html)) warnings.push(`${relative(DIST, file)}: contains localhost / placeholder / TODO text`);
 }
 
 // Validate menu data so a typo can't ship a broken or NaN price
@@ -102,6 +180,10 @@ try {
         const catalog = new Map();
         if (!/^\d{10,15}$/.test(data.whatsapp ?? "")) errors.push("ordering catalog: invalid WhatsApp number");
         if (!Array.isArray(data.hours) || data.hours.length === 0) errors.push("ordering catalog: opening hours missing");
+        if (typeof data.delivery?.enabled !== "boolean")
+            errors.push("ordering catalog: delivery settings missing (see DELIVERY in src/lib/config.ts)");
+        else if (data.delivery.enabled && !/id="mode-delivery"/.test(home))
+            errors.push("index.html: delivery is enabled but the Pickup / Delivery switch is missing");
         for (const item of data.items ?? []) {
             if (!/^[a-z0-9-]+--[a-z0-9-]+$/.test(item.id ?? "")) errors.push(`ordering catalog: odd id "${item.id}"`);
             if (catalog.has(item.id)) errors.push(`ordering catalog: duplicate id "${item.id}"`);

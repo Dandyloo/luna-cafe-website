@@ -4,6 +4,9 @@ import "../styles/global.css";
 import { ClientRouter } from "astro:transitions";
 import CartDrawer from "../components/CartDrawer.astro";
 import { WHATSAPP_NUMBER } from "../lib/config";
+import menuData from "../data/menu.json";
+import type { MenuData } from "../types/menu";
+import { buildCatalog } from "../lib/menu";
 
 interface Props {
     title: string;
@@ -13,14 +16,14 @@ interface Props {
 
 const {
     title,
-    description = "Luna Café & Eatery in Pedu, Cape Coast. Boba, shawarma, pizza, coffee and breakfast. Order on WhatsApp for quick takeout.",
+    description = "Luna Café & Eatery in Pedu, Cape Coast. Boba, shawarma, pizza, coffee and breakfast. Order on WhatsApp for pickup or delivery.",
     noindex = false,
 } = Astro.props;
 
 // Absolute URLs only when SITE_URL is set at build time (see astro.config.mjs)
 const site = Astro.site;
 const canonical = site ? new URL(Astro.url.pathname, site).href : undefined;
-const ogImage = site ? new URL("/logo.jpg", site).href : undefined;
+const ogImage = site ? new URL("/og-image.jpg", site).href : undefined;
 const path = Astro.url.pathname;
 const whatsapp = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi%20Luna%2C%20I%27d%20like%20to%20order...`;
 
@@ -32,15 +35,23 @@ const socials = [
 const TIKTOK_PATH =
     "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z";
 
+// Price range for search results, worked out from the live menu so it never goes stale
+const prices = buildCatalog(menuData as unknown as MenuData).flatMap((i) => i.options.map((o) => o.price));
+const priceRange = `GHS ${Math.min(...prices)} - GHS ${Math.max(...prices)}`;
+
 const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CafeOrCoffeeShop",
     name: "Luna Café & Eatery",
     telephone: "+233593676875",
+    priceRange,
+    currenciesAccepted: "GHS",
+    areaServed: { "@type": "City", name: "Cape Coast" },
     address: {
         "@type": "PostalAddress",
-        streetAddress: "Pedu",
+        streetAddress: "Pedu Goil Filling Station, Pedu",
         addressLocality: "Cape Coast",
+        addressRegion: "Central Region",
         addressCountry: "GH",
     },
     servesCuisine: ["Bubble tea", "Shawarma", "Pizza", "Coffee", "Breakfast"],
@@ -59,10 +70,28 @@ const jsonLd = {
         },
     ],
     ...(site && {
+        "@id": new URL("/#cafe", site).href,
         url: site.href,
         image: ogImage,
+        logo: new URL("/logo.jpg", site).href,
         hasMenu: new URL("/menu/", site).href,
     }),
+    // "Order" button in search results: opens the same WhatsApp ordering chat
+    potentialAction: {
+        "@type": "OrderAction",
+        target: {
+            "@type": "EntryPoint",
+            urlTemplate: `https://wa.me/${WHATSAPP_NUMBER}`,
+            actionPlatform: [
+                "http://schema.org/DesktopWebPlatform",
+                "http://schema.org/MobileWebPlatform",
+            ],
+        },
+        deliveryMethod: [
+            "http://purl.org/goodrelations/v1#DeliveryModePickUp",
+            "http://purl.org/goodrelations/v1#DeliveryModeOwnFleet",
+        ],
+    },
     sameAs: socials.map((s) => s.href),
 };
 
@@ -76,6 +105,25 @@ const links = [
 ];
 const isActive = (href: string) =>
     href === "/" ? path === "/" : path.startsWith(href);
+
+// Breadcrumb trail for inner pages (needs SITE_URL for absolute links)
+const currentPage = links.find((l) => l.href !== "/" && path.startsWith(l.href));
+const breadcrumb =
+    site && currentPage
+        ? {
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                  { "@type": "ListItem", position: 1, name: "Home", item: site.href },
+                  {
+                      "@type": "ListItem",
+                      position: 2,
+                      name: currentPage.label,
+                      item: new URL(currentPage.href + "/", site).href,
+                  },
+              ],
+          }
+        : null;
 
 // Page content: old page lifts & fades out, new page rises in (keyframes in global.css)
 const pageAnim = {
@@ -132,9 +180,11 @@ const pageAnim = {
         />
         {canonical && <link rel="canonical" href={canonical} />}
 
-        <!-- Icons -->
-        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <!-- Icons: generated from the logo by scripts/generate-icons.mjs (npm run icons) -->
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
 
         <!-- Open Graph / Twitter -->
         <meta property="og:type" content="website" />
@@ -144,11 +194,16 @@ const pageAnim = {
         <meta property="og:description" content={description} />
         {canonical && <meta property="og:url" content={canonical} />}
         {ogImage && <meta property="og:image" content={ogImage} />}
+        {ogImage && <meta property="og:image:width" content="1200" />}
+        {ogImage && <meta property="og:image:height" content="630" />}
+        {ogImage && <meta property="og:image:alt" content="Luna Café & Eatery logo" />}
         <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         {ogImage && <meta name="twitter:image" content={ogImage} />}
+        {ogImage && <meta name="twitter:image:alt" content="Luna Café & Eatery logo" />}
         <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+        {breadcrumb && <script type="application/ld+json" set:html={JSON.stringify(breadcrumb)} />}
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -374,7 +429,7 @@ const pageAnim = {
                                 <a href="tel:+233593676875" class="transition hover:text-brand-primary">+233 59 367 6875</a>
                             </li>
                             <li>
-                                <a href="https://wa.me/233593676875" target="_blank" rel="noopener" class="transition hover:text-brand-primary">WhatsApp us</a>
+                                <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener" class="transition hover:text-brand-primary">WhatsApp us</a>
                             </li>
                         </ul>
                     </div>

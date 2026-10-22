@@ -1,6 +1,6 @@
 # Luna Café & Eatery Website
 
-Marketing and menu website for **Luna Café & Eatery** in Pedu, Cape Coast, Ghana. Customers browse the menu and place orders through WhatsApp.
+Marketing and menu website for **Luna Café & Eatery** in Pedu, Cape Coast, Ghana. Customers browse the menu and place **pickup or delivery** orders through WhatsApp.
 
 Built with [Astro](https://astro.build) and [Tailwind CSS v4](https://tailwindcss.com). It is a fully static site with no backend and no database.
 
@@ -38,7 +38,11 @@ The dev server runs at `http://localhost:4321`.
 ├── scripts/
 │   └── qa-check.mjs        Post-build QA checks
 └── src/
+    ├── components/
+    │   └── CartDrawer.astro  Order drawer: cart, pickup/delivery form, success screen
     ├── data/menu.json      The menu: edit this to change items and prices
+    ├── lib/config.ts       WhatsApp number, opening hours, delivery areas and fees
+    ├── scripts/cart.ts     Cart logic and WhatsApp message builder
     ├── layouts/
     │   └── BaseLayout.astro  Header, footer, SEO tags, structured data
     ├── pages/
@@ -63,9 +67,23 @@ Edit `src/data/menu.json`. The structure is categories → groups → items. Eac
 
 Use a number or `null`. `npm run qa` flags missing or invalid prices.
 
-### Change contact details, hours or socials
+### Going live checklist
 
-These live in `src/layouts/BaseLayout.astro` (WhatsApp link, social accounts, footer hours, and the structured-data block). The WhatsApp link and the hours are also repeated in `src/pages/index.astro` and `src/pages/menu.astro`, so update them there too.
+1. Set `SITE_URL` to the final address (e.g. `https://lunacafe.com`) in the hosting dashboard's environment variables. A local `.env` file also works (copy `.env.example`).
+2. `npm run qa` must pass with **no errors**. Warnings about `SITE_URL` mean canonical links, the sitemap and social previews are incomplete.
+3. Tab icons, the home-screen icon and the link-preview image are generated from `public/logo.jpg`. After changing the logo run `npm run icons`, then rebuild.
+4. Hosting on Vercel: the security headers and caching live in `vercel.json` (Vercel ignores `public/_headers`). Set `SITE_URL` under Settings → Environment Variables and use Node 22 or newer. Cloudflare Pages or Netlify would read `public/_headers` instead.
+5. After it is live: submit `/sitemap.xml` in Google Search Console, claim the Google Business Profile, and send a test order from a phone for both pickup and delivery.
+
+### Change the WhatsApp number, hours or delivery settings
+
+These live in `src/lib/config.ts` (`WHATSAPP_NUMBER`, `HOURS`, `DELIVERY`). The cart reads them from there, so you only change them in one place.
+
+**Delivery:** there is no address field. The order goes to WhatsApp labelled "Delivery", the rider calls the customer to ask where they are, and Luna confirms the delivery fee on WhatsApp. Set `DELIVERY.enabled` to `false` to go back to pickup only.
+
+### Change contact details or socials
+
+The address, phone number, social accounts, footer hours and structured-data block live in `src/layouts/BaseLayout.astro`. The hours are also repeated in `src/pages/index.astro` and `src/pages/about.astro`, so update them there too.
 
 ### Add a page
 

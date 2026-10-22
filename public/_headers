@@ -1,6 +1,6 @@
-# Security + caching headers.
-# Works as-is on Cloudflare Pages and Netlify (both read public/_headers).
-# For Vercel or other hosts, copy these into that host's header config.
+# Security + caching headers for Cloudflare Pages and Netlify (both read public/_headers).
+# Vercel does NOT read this file: it uses vercel.json in the project root. Keep the two in sync
+# (npm run qa checks that the Content-Security-Policy matches).
 
 /*
   X-Content-Type-Options: nosniff
@@ -9,7 +9,7 @@
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-src https://www.google.com https://maps.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
 # Fingerprinted build assets never change, so cache them for a year
 /_astro/*
@@ -22,3 +22,10 @@
   Cache-Control: public, max-age=2592000
 /*.svg
   Cache-Control: public, max-age=2592000
+/*.png
+  Cache-Control: public, max-age=2592000
+/*.ico
+  Cache-Control: public, max-age=2592000
+/site.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=86400
