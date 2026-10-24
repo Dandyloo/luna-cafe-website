@@ -4,15 +4,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
 const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Pedu Goil Filling Station, Cape Coast, Ghana")}`;
 
-// Hero card deck: flips through these every 5 seconds (files live in /public)
+// Hero image carousel (files live in /public)
 const heroSlides = [
-	{ src: "/boba-hero.avif", alt: "Fresh boba drink at Luna Café" },
-	{ src: "/macha-hero.avif", alt: "Fresh matcha drink at Luna Café" },
-	{ src: "/shawarma-hero.avif", alt: "Loaded shawarma at Luna Café" },
-	{ src: "/pizza-hero.avif", alt: "Luna Special Pizza at Luna Café" },
-	{ src: "/sandwich-hero.avif", alt: "Delicious club sandwich at Luna Café" },
-	{ src: "/jollof-hero.avif", alt: "Delicious Jollof rice at Luna Café" },
-	{ src: "/quiche-pie-hero.avif", alt: "Delicious quiche at Luna Café" },
+	{ src: "/boba.png", alt: "Fresh boba drink at Luna Café", width: 1254, height: 1254 },
+	{ src: "/macha.png", alt: "Fresh matcha drink at Luna Café", width: 1254, height: 1254 },
+	{ src: "/pizza.png", alt: "Luna Special Pizza at Luna Café", width: 1254, height: 1254 },
+	{ src: "/qish-pie.png", alt: "Delicious quiche pie at Luna Café", width: 1392, height: 1130 },
 ];
 
 const ticker = [
@@ -131,41 +128,27 @@ const offers = [
 
 				<!-- Hero image slot -->
 				<div class="reveal order-1 relative mx-auto w-full max-w-md lg:order-2 lg:max-w-none" style="--d:200ms">
-					<div
-						class="absolute inset-0 translate-x-3 translate-y-3 rotate-3 rounded-[2.5rem] bg-brand-primary"
-						aria-hidden="true"
-					>
-					</div>
 					<div id="hero-deck" class="hero-deck relative aspect-[4/5]">
 						{
 							heroSlides.map((s, i) => (
 								<div
 									data-pos={i}
 									aria-hidden={i === 0 ? undefined : "true"}
-									class="hero-card absolute inset-0 overflow-hidden rounded-[2.5rem] border border-brand-shadow/10 bg-gradient-to-br from-brand-accent/60 to-brand-primary/40 shadow-2xl shadow-brand-shadow/20"
+									class="hero-card absolute inset-0"
 								>
 									<img
 										src={s.src}
 										alt={s.alt}
-										width="800"
-										height="1000"
+										width={s.width}
+										height={s.height}
 										fetchpriority={i === 0 ? "high" : undefined}
 										decoding="async"
-										class="parallax-img h-full w-full object-cover"
+										class="parallax-img h-full w-full object-contain"
 										onerror="this.style.display='none'"
 									/>
 								</div>
 							))
 						}
-						<div class="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center" aria-hidden="true">
-							<div class="flex items-center gap-2 rounded-full bg-white/70 px-3 py-2 backdrop-blur">
-								{
-									heroSlides.map((_, i) => (
-										<span class:list={["hero-dot", i === 0 && "is-active"]} />
-									))
-								}
-							</div>
-						</div>
 					</div>
 				</div>
 			</div>
@@ -341,12 +324,15 @@ const offers = [
 
 <script>
 	const INTERVAL = 5000;
-	const FLIP_MS = 900;
+	const FADE_MS = 600;
 	let timer: number | undefined;
+	let transitionTimer: number | undefined;
 
-	function stop() {
+	function stop(cancelTransition = true) {
 		clearInterval(timer);
+		if (cancelTransition) clearTimeout(transitionTimer);
 		timer = undefined;
+		if (cancelTransition) transitionTimer = undefined;
 	}
 
 	function init() {
@@ -355,17 +341,15 @@ const offers = [
 		if (!deck) return;
 
 		const cards = Array.from(deck.querySelectorAll<HTMLElement>(".hero-card"));
-		const dots = Array.from(deck.querySelectorAll<HTMLElement>(".hero-dot"));
 		if (cards.length < 2) return;
 
 		const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-		let order = cards.map((_, i) => i); // order[0] = card currently in front
+		let order = cards.map((_, i) => i); // order[0] = card currently visible
 		let busy = false;
 		let touchStartX: number | undefined;
 
 		const paint = () => {
 			cards.forEach((c, i) => c.setAttribute("aria-hidden", String(order[0] !== i)));
-			dots.forEach((d, i) => d.classList.toggle("is-active", i === order[0]));
 		};
 
 		const advance = (direction = 1) => {
@@ -374,33 +358,36 @@ const offers = [
 			busy = true;
 
 			const leaving = cards[order[0]];
-			if (direction > 0) {
-				order.push(order.shift()!);
-			} else {
-				order.unshift(order.pop()!);
-			}
 
-			cards.forEach((card, index) => {
-				card.classList.remove("is-leaving", "is-resetting");
-				card.dataset.pos = String(order.indexOf(index));
-			});
-			paint();
-
-			if (reduce.matches || direction < 0) {
+			if (reduce.matches) {
+				if (direction > 0) {
+					order.push(order.shift()!);
+				} else {
+					order.unshift(order.pop()!);
+				}
+				cards.forEach((card, index) => {
+					card.dataset.pos = String(order.indexOf(index));
+				});
+				paint();
 				busy = false;
 				return;
 			}
 
-			// Front card flips away, then slips in at the back of the stack
 			leaving.classList.add("is-leaving");
-			setTimeout(() => {
-				leaving.classList.add("is-resetting");
-				leaving.classList.remove("is-leaving");
-				leaving.dataset.pos = "2";
-				void leaving.offsetWidth; // commit the jump while hidden
-				leaving.classList.remove("is-resetting");
+			transitionTimer = window.setTimeout(() => {
+				if (direction > 0) {
+					order.push(order.shift()!);
+				} else {
+					order.unshift(order.pop()!);
+				}
+				cards.forEach((card, index) => {
+					card.classList.remove("is-leaving");
+					card.dataset.pos = String(order.indexOf(index));
+				});
+				paint();
 				busy = false;
-			}, FLIP_MS);
+				transitionTimer = undefined;
+			}, FADE_MS);
 		};
 
 		const onPointerDown = (event: PointerEvent) => {
@@ -423,7 +410,7 @@ const offers = [
 		deck.addEventListener("pointercancel", onPointerCancel);
 
 		const start = () => {
-			stop();
+			stop(false);
 			timer = window.setInterval(advance, INTERVAL);
 		};
 

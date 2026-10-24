@@ -445,7 +445,10 @@ const pageAnim = {
 
                 <div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-brand-bg/15 pt-6 text-xs text-brand-bg/55">
                     <p>© {new Date().getFullYear()} Luna Café & Eatery</p>
-                    <a href={whatsapp} target="_blank" rel="noopener" class="transition hover:text-brand-primary">Chat on WhatsApp →</a>
+                    <div class="flex items-center gap-5">
+                        <a href="/privacy" class="transition hover:text-brand-primary">Privacy</a>
+                        <a href={whatsapp} target="_blank" rel="noopener" class="transition hover:text-brand-primary">Chat on WhatsApp →</a>
+                    </div>
                 </div>
             </div>
         </footer>

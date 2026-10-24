@@ -114,7 +114,7 @@ if (!siteUrl) {
     warnings.push("SITE_URL is not set: canonical links, sitemap, robots and social-share URLs are incomplete. Build for production with SITE_URL=https://your-domain");
 } else {
     const sm = existsSync(dist("sitemap.xml")) ? readFileSync(dist("sitemap.xml"), "utf8") : "";
-    for (const p of ["/", "/menu/", "/about/"])
+    for (const p of ["/", "/menu/", "/about/", "/privacy/"])
         if (!sm.includes(`<loc>${new URL(p, siteUrl).href}</loc>`)) errors.push(`sitemap.xml is missing ${p}`);
     const robots = existsSync(dist("robots.txt")) ? readFileSync(dist("robots.txt"), "utf8") : "";
     if (!robots.includes("Sitemap:")) errors.push("robots.txt has no Sitemap line");

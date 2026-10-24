@@ -1,0 +1,137 @@
+---
+// src/pages/privacy.astro
+// Plain-English privacy note. If you add analytics, ads or an order backend later, update this page.
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const sections = [
+    {
+        title: "Who we are",
+        body: [
+            "Luna Café & Eatery, Pedu Goil Filling Station, Cape Coast, Ghana. You can reach us on +233 59 367 6875 (call or WhatsApp).",
+        ],
+    },
+    {
+        title: "What you give us when you order",
+        body: [
+            "Your name, phone number, the items you choose, whether you want pickup or delivery, and an optional note. You type these into the order form, and they reach us only when you tap Send in WhatsApp. Until then, nothing is sent to us.",
+            "We do not ask for your address on this website. For deliveries, our rider calls you to ask where you are.",
+        ],
+    },
+    {
+        title: "What stays on your device",
+        body: [
+            "To save you retyping, this website remembers your order, name, phone number and your pickup or delivery choice in your browser's storage on your own phone or computer. This is not sent to us or anyone else.",
+        ],
+    },
+    {
+        title: "How we use your details",
+        body: [
+            "Only to prepare, deliver and follow up on your order. We do not sell your details or use them for advertising.",
+        ],
+    },
+    {
+        title: "WhatsApp",
+        body: [
+            "Orders are sent through WhatsApp, which is run by Meta and has its own privacy policy. Your order message and phone number stay in our WhatsApp chat history.",
+        ],
+    },
+    {
+        title: "Other services this site uses",
+        body: [
+            "Google Fonts (to show our text styles) and Google Maps (on the About page) load from Google, so Google can see your internet address and browser details when they load. The website is hosted by Vercel, which keeps standard server logs such as your internet address and the pages requested, for security and to keep the site running.",
+            "We do not use advertising or analytics trackers on this website.",
+        ],
+    },
+    {
+        title: "Your choices",
+        body: [
+            "You have rights over your personal information under Ghana's Data Protection Act, 2012 (Act 843), including asking what we hold about you and asking us to correct or delete it. Message us on WhatsApp and we will help.",
+        ],
+    },
+    {
+        title: "Changes",
+        body: [
+            "If we change how this website handles information, we will update this page. Last updated: October 2026.",
+        ],
+    },
+];
+---
+
+<BaseLayout
+    title="Privacy | Luna Café & Eatery, Cape Coast"
+    description="How Luna Café & Eatery handles your name, phone number and order details when you order online."
+>
+    <section class="relative isolate overflow-hidden">
+        <div class="absolute inset-0 -z-10 bg-grain"></div>
+        <div class="mx-auto max-w-3xl px-4 pt-32 pb-24 sm:px-6 sm:pt-40">
+            <div class="hero-stagger">
+                <p class="text-sm font-bold uppercase tracking-widest text-brand-deep">Privacy</p>
+                <h1 class="mt-4 text-5xl font-extrabold text-brand-shadow sm:text-6xl">
+                    Your details, kept simple.
+                </h1>
+                <p class="mt-6 text-lg text-brand-text/75">
+                    Here is what happens to your information when you order from Luna online.
+                </p>
+            </div>
+
+            <div class="mt-12 space-y-5">
+                {
+                    sections.map((s) => (
+                        <section class="rounded-[2rem] border border-brand-shadow/10 bg-white/80 p-7 sm:p-9">
+                            <h2 class="text-2xl font-extrabold text-brand-shadow">{s.title}</h2>
+                            <div class="mt-3 space-y-3 text-brand-text/80">
+                                {s.body.map((p) => (
+                                    <p>{p}</p>
+                                ))}
+                            </div>
+                        </section>
+                    ))
+                }
+
+                <section class="rounded-[2rem] bg-brand-primary p-7 text-brand-text sm:p-9">
+                    <h2 class="text-2xl font-extrabold">Forget my saved details</h2>
+                    <p class="mt-3">
+                        Remove the order, name and phone number this website saved on this device.
+                    </p>
+                    <button
+                        type="button"
+                        data-forget-details
+                        class="mt-5 inline-flex items-center justify-center rounded-full bg-brand-shadow px-7 py-3.5 font-bold text-brand-bg transition hover:bg-brand-text active:scale-[.98]"
+                    >
+                        Forget my details
+                    </button>
+                    <p id="forget-status" role="status" class="mt-4 font-semibold"></p>
+                </section>
+            </div>
+        </div>
+    </section>
+</BaseLayout>
+
+<script>
+    // Same storage keys as src/scripts/cart.ts
+    document.addEventListener("click", (e) => {
+        if (!(e.target as HTMLElement | null)?.closest("[data-forget-details]")) return;
+
+        let ok = true;
+        try {
+            localStorage.removeItem("luna-customer-v1");
+            localStorage.removeItem("luna-cart-v1");
+        } catch {
+            ok = false;
+        }
+
+        // Clear what is already filled in on this page and refresh the cart button
+        for (const id of ["order-name", "order-phone", "order-note"]) {
+            const field = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null;
+            if (field) field.value = "";
+        }
+        window.dispatchEvent(new StorageEvent("storage", { key: "luna-cart-v1" }));
+
+        const status = document.getElementById("forget-status");
+        if (status) {
+            status.textContent = ok
+                ? "Done. Your saved order, name and phone number were removed from this device."
+                : "Your browser blocked access to saved data, so there was nothing to remove.";
+        }
+    });
+</script>
