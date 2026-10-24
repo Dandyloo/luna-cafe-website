@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 
 // Add new public pages here so they show up in the sitemap.
 // Paths use a trailing slash to match Astro's default static output.
-const pages = ["/", "/menu/", "/about/"];
+const pages = ["/", "/menu/", "/about/", "/privacy/"];
 
 export const GET: APIRoute = ({ site }) => {
     const urls = site

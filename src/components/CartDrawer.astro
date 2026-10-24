@@ -188,13 +188,16 @@ const pillBtn =
 
                         <div>
                             <label for="order-phone" class={label}>Phone number</label>
-                            <input id="order-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required placeholder="024 123 4567" class={field} />
+                            <input id="order-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required class={field} />
+                            <p class="mt-1.5 text-xs text-brand-text/60">
+                                We save your name and number on this device so you don't have to type them again.
+                                <a href="/privacy" data-cart-close class="font-semibold underline underline-offset-2">Privacy</a>
+                            </p>
+                            <div id="mode-note" class="mt-2 rounded-2xl bg-brand-primary/25 px-4 py-3 text-sm font-medium text-brand-text">
+                                We'll notify you on WhatsApp when your order is ready for pickup.
+                            </div>
                         </div>
                     </fieldset>
-
-                    <div id="mode-note" class="rounded-2xl bg-brand-primary/25 px-4 py-3 text-sm font-medium text-brand-text">
-                        We'll notify you on WhatsApp when your order is ready for pickup.
-                    </div>
 
                     <div>
                         <label for="order-note" class={label}>Note <span class="font-normal text-brand-text/55">(optional)</span></label>
