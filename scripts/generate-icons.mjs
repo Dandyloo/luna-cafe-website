@@ -5,7 +5,8 @@
 //
 // Output (all in /public):
 //   favicon.ico            16 + 32 + 48 px, for browser tabs and old browsers
-//   favicon.svg            64 px logo wrapped in an SVG, for modern browsers
+//   favicon-48.png         48 px PNG, the size Google Search wants (multiples of 48)
+//   favicon-96.png         96 px PNG, sharper version for Google Search / high-DPI tabs
 //   apple-touch-icon.png   180 px, for iPhone/iPad home screens
 //   icon-192.png           192 px, web app manifest
 //   icon-512.png           512 px, web app manifest
@@ -111,11 +112,10 @@ const save = async (file, data) => {
 const tabs = await Promise.all([16, 32, 48].map(async (size) => ({ size, buf: await tile(size) })));
 await save("favicon.ico", ico(tabs));
 
-const svgPng = (await tile(64)).toString("base64");
-await save(
-    "favicon.svg",
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><image width="64" height="64" href="data:image/png;base64,${svgPng}"/></svg>\n`,
-);
+// Plain PNG favicons. Google Search needs a real raster/vector icon whose size is a multiple of 48px;
+// the old SVG only wrapped a PNG, which Google's favicon crawler tends to ignore.
+await save("favicon-48.png", await tile(48));
+await save("favicon-96.png", await tile(96));
 
 // Home-screen icons: solid cream background (iOS fills transparency with black)
 await save("apple-touch-icon.png", await tile(180, { background: CREAM, fill: 0.84 }));
