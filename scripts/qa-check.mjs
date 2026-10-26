@@ -89,12 +89,10 @@ for (const file of htmlFiles) {
 const dist = (f) => join(DIST, f);
 const home0 = existsSync(dist("index.html")) ? readFileSync(dist("index.html"), "utf8") : "";
 
-for (const f of ["favicon.ico", "favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "og-image.jpg", "site.webmanifest"]) {
+for (const f of ["favicon.ico", "favicon-48.png", "favicon-96.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "og-image.jpg", "site.webmanifest"]) {
     if (!existsSync(dist(f))) errors.push(`missing /${f} (run \`npm run icons\` and rebuild)`);
 }
-if (existsSync(dist("favicon.svg")) && readFileSync(dist("favicon.svg"), "utf8").includes("M50.4 78.5"))
-    errors.push("favicon.svg is still the default Astro icon (run `npm run icons`)");
-for (const rel of ["favicon.ico", "favicon.svg", "apple-touch-icon.png", "site.webmanifest"]) {
+for (const rel of ["favicon.ico", "favicon-48.png", "favicon-96.png", "apple-touch-icon.png", "site.webmanifest"]) {
     if (!home0.includes(`href="/${rel}"`)) errors.push(`index.html does not link /${rel}`);
 }
 if (existsSync(dist("site.webmanifest"))) {
