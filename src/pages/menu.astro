@@ -3,7 +3,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ItemSheet from "../components/ItemSheet.astro";
 import menuData from "../data/menu.json";
-import { displayGroupName, itemId, itemInitial, normalize, optionsFor, priceSummary } from "../lib/menu";
+import { displayGroupName, extrasFor, itemId, itemInitial, normalize, optionsFor, priceSummary } from "../lib/menu";
 import { WHATSAPP_NUMBER } from "../lib/config";
 
 // "Savoury Bites & Drinks" -> "savoury-bites-drinks" (matches the /menu#... links on the home and about pages)
@@ -162,6 +162,8 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
                                         const id = itemId(group.name, item.name);
                                         const options = optionsFor(item);
                                         const available = item.available !== false;
+                                        // Items that take extras (the boba drinks) always open the item sheet
+                                        const hasExtras = extrasFor(category as any).length > 0;
                                         return (
                                             <li
                                                 data-menu-item
@@ -227,7 +229,7 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
                                                     </p>
                                                 </div>
 
-                                                {available && options.length === 1 && (
+                                                {available && options.length === 1 && !hasExtras && (
                                                     <button
                                                         type="button"
                                                         data-add
@@ -239,7 +241,7 @@ const chatLink = `https://wa.me/${WHATSAPP_NUMBER}`;
                                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                                                     </button>
                                                 )}
-                                                {available && options.length > 1 && (
+                                                {available && (options.length > 1 || hasExtras) && (
                                                     <button
                                                         type="button"
                                                         data-open-item

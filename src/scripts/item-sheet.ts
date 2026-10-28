@@ -3,18 +3,22 @@
 //
 // - Prices and size options come from the menu catalog (#menu-data), the same source the cart uses.
 // - Name, group, description and photo come from the tapped tile's data attributes.
-// - "Add to order" dispatches `luna:add-item` ({ id, k, qty }); the cart listens for it.
+// - "Add to order" dispatches `luna:add-item` ({ id, k, qty, x }); the cart listens for it.
 // - Anything can open the sheet with `luna:open-item` ({ id }) or a [data-open-item] tile.
+// - Extras (checkboxes) come from the category's extra set in the catalog; x is the list of ticked extra keys.
 
 type Option = { k: string; label: string; price: number };
-type Item = { id: string; name: string; options: Option[] };
+type Extra = { k: string; name: string; price: number };
+type Item = { id: string; name: string; options: Option[]; extraSet?: string };
 
 const MAX_QTY = 20;
 
 let index: Map<string, Item> | null = null;
+let extraSets: Record<string, Extra[]> = {};
 let current: Item | null = null;
 let size = "";
 let qty = 1;
+let picked = new Set<string>();
 
 // History: opening an item adds a `?item=<id>` entry so the back button closes the sheet
 let pushed = false; // the open sheet has a history entry we added
@@ -42,12 +46,18 @@ function catalog(): Map<string, Item> {
     index = new Map();
     try {
         const raw = byId("menu-data")?.textContent;
-        if (raw) for (const item of (JSON.parse(raw).items ?? []) as Item[]) index.set(item.id, item);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            extraSets = parsed.extraSets ?? {};
+            for (const item of (parsed.items ?? []) as Item[]) index.set(item.id, item);
+        }
     } catch {
         /* no catalog: the sheet simply won't open */
     }
     return index;
 }
+
+const extrasOf = (item: Item): Extra[] => (item.extraSet ? (extraSets[item.extraSet] ?? []) : []);
 
 /** "M" and "L" read better spelled out; "500ml" / "700ml" are already clear. */
 const sizeName = (label: string) =>
@@ -112,9 +122,59 @@ function renderSizes(item: Item) {
     }
 }
 
+function renderExtras(item: Item) {
+    const fieldset = byId("item-extras");
+    const list = byId("item-extras-list");
+    if (!fieldset || !list) return;
+    const extras = extrasOf(item);
+    fieldset.hidden = extras.length === 0;
+    list.replaceChildren(
+        ...extras.map((x) => {
+            const wrap = h("div", "");
+            const input = h("input", "peer sr-only");
+            input.type = "checkbox";
+            input.name = "item-extra";
+            input.id = `item-extra-${x.k}`;
+            input.value = x.k;
+            const label = h(
+                "label",
+                "flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-brand-shadow/10 bg-white px-4 py-3 transition hover:border-brand-shadow/25 peer-checked:border-brand-primary peer-checked:bg-brand-primary/15 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-secondary",
+            );
+            label.htmlFor = input.id;
+            const box = h(
+                "span",
+                "grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 border-brand-shadow/25 bg-white text-brand-text transition",
+            );
+            box.dataset.box = "";
+            box.innerHTML =
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="opacity-0"><path d="m5 12 5 5 9-10"/></svg>';
+            label.append(
+                box,
+                h("span", "flex-1 font-semibold text-brand-shadow", x.name),
+                h("span", "text-sm font-semibold text-brand-text/70", `+${money(x.price)}`),
+            );
+            wrap.append(input, label);
+            return wrap;
+        }),
+    );
+}
+
+/** Fills or empties the little tick box when an extra is ticked. */
+function paintExtra(input: HTMLInputElement) {
+    const box = input.parentElement?.querySelector<HTMLElement>("[data-box]");
+    if (!box) return;
+    box.classList.toggle("border-brand-primary", input.checked);
+    box.classList.toggle("bg-brand-primary", input.checked);
+    box.classList.toggle("border-brand-shadow/25", !input.checked);
+    box.classList.toggle("bg-white", !input.checked);
+    box.firstElementChild?.classList.toggle("opacity-0", !input.checked);
+}
+
 function renderTotal() {
     const opt = current?.options.find((o) => o.k === size);
-    const price = opt ? opt.price * qty : 0;
+    const extras = current ? extrasOf(current).filter((x) => picked.has(x.k)) : [];
+    const unit = (opt?.price ?? 0) + extras.reduce((n, x) => n + x.price, 0);
+    const price = unit * qty;
     const add = byId("item-add");
     if (add) add.textContent = `Add to order · ${money(price)}`;
     const q = byId("item-qty");
@@ -138,6 +198,7 @@ function openItem(id: string, mode: OpenMode = "push") {
     current = item;
     size = item.options[0].k;
     qty = 1;
+    picked = new Set();
 
     const title = byId("item-title");
     if (title) title.textContent = item.name;
@@ -152,6 +213,7 @@ function openItem(id: string, mode: OpenMode = "push") {
 
     renderMedia(item.name, tile?.dataset.image);
     renderSizes(item);
+    renderExtras(item);
     renderTotal();
     byId("item-dialog")?.querySelector<HTMLElement>(".item-scroll")?.scrollTo({ top: 0 });
 
@@ -200,7 +262,7 @@ function closeItem() {
 function addToOrder() {
     if (!current) return;
     document.dispatchEvent(
-        new CustomEvent("luna:add-item", { detail: { id: current.id, k: size, qty } }),
+        new CustomEvent("luna:add-item", { detail: { id: current.id, k: size, qty, x: [...picked] } }),
     );
     closeItem();
 }
@@ -232,6 +294,13 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("change", (e) => {
     const t = e.target as HTMLInputElement | null;
+    if (t?.name === "item-extra") {
+        if (t.checked) picked.add(t.value);
+        else picked.delete(t.value);
+        paintExtra(t);
+        renderTotal();
+        return;
+    }
     if (t?.name === "item-size" && current?.options.some((o) => o.k === t.value)) {
         size = t.value;
         renderTotal();

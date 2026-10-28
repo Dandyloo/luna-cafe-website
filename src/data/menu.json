@@ -171,28 +171,13 @@
             "priceLarge": 60
           }
         ]
-      },
-      {
-        "name": "Extras",
-        "items": [
-          {
-            "name": "Extra Boba",
-            "price": 10
-          },
-          {
-            "name": "Extra Popping",
-            "price": 10
-          },
-          {
-            "name": "Extra Cheese Foam",
-            "price": 15
-          },
-          {
-            "name": "Extra Cheese",
-            "price": 30
-          }
-        ]
       }
+    ],
+    "extras": [
+      { "name": "Extra Boba", "price": 10 },
+      { "name": "Extra Popping", "price": 10 },
+      { "name": "Extra Cheese Foam", "price": 15 },
+      { "name": "Extra Cheese", "price": 30 }
     ]
   },
   {

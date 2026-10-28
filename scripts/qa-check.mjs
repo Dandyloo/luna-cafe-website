@@ -161,6 +161,16 @@ try {
                 }
             }
         }
+        // Extras: optional add-ons offered inside the item sheet for the whole category
+        const extraNames = new Set();
+        for (const e of cat.extras ?? []) {
+            const where = `menu.json › ${cat.name} › extras › ${e.name ?? "(no name)"}`;
+            if (!e.name?.trim()) errors.push(`${where}: empty name`);
+            if (extraNames.has(e.name)) errors.push(`${where}: duplicate extra name`);
+            extraNames.add(e.name);
+            if (typeof e.price !== "number" || !(e.price > 0)) errors.push(`${where}: price must be a positive number`);
+            if ("available" in e && typeof e.available !== "boolean") errors.push(`${where}: available must be true or false`);
+        }
     }
 } catch (e) {
     errors.push(`menu.json could not be validated: ${e.message}`);
@@ -192,7 +202,17 @@ try {
                 keys.add(o.k);
             }
             if (keys.size === 0) errors.push(`ordering catalog: ${item.id} has no options`);
+            if (item.extraSet && !data.extraSets?.[item.extraSet]?.length)
+                errors.push(`ordering catalog: ${item.id} points at extras "${item.extraSet}" that do not exist`);
             catalog.set(item.id, keys);
+        }
+        for (const [set, extras] of Object.entries(data.extraSets ?? {})) {
+            const ks = new Set();
+            for (const x of extras) {
+                if (!/^[a-z0-9-]+$/.test(x.k ?? "") || ks.has(x.k)) errors.push(`ordering catalog: extras "${set}" has a bad or duplicate key "${x.k}"`);
+                if (typeof x.price !== "number" || !(x.price > 0)) errors.push(`ordering catalog: extra ${set}/${x.k} has a bad price`);
+                ks.add(x.k);
+            }
         }
         let addButtons = 0;
         for (const file of htmlFiles) {
@@ -224,11 +244,9 @@ try {
         );
         const groupCount = menu.reduce((n, c) => n + (c.groups ?? []).length, 0);
 
-        const orderable = new Set(
-            (JSON.parse(html.match(/<script[^>]*id="menu-data"[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? "{}").items ?? []).map(
-                (i) => i.id,
-            ),
-        );
+        const menuItems = JSON.parse(html.match(/<script[^>]*id="menu-data"[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? "{}").items ?? [];
+        const orderable = new Set(menuItems.map((i) => i.id));
+        const withExtras = new Set(menuItems.filter((i) => i.extraSet).map((i) => i.id));
 
         // Tiles: one per menu item, in the server-rendered HTML
         const tiles = [...html.matchAll(/<li\b[^>]*data-menu-item[^>]*>[\s\S]*?<\/li>/g)].map((m) => m[0]);
@@ -247,6 +265,7 @@ try {
             const adds = /data-add/.test(tile);
             if (orderable.has(id) && !opens) errors.push(`menu: tile "${id}" cannot be opened (no data-open-item)`);
             if (!orderable.has(id) && (opens || adds)) errors.push(`menu: tile "${id}" is sold out but still has an order button`);
+            if (withExtras.has(id) && adds) errors.push(`menu: tile "${id}" takes extras, so it must open the item sheet instead of quick-adding`);
             const image = tile.match(/data-image="([^"]+)"/)?.[1];
             if (image && !existsSync(dist(image.replace(/^\//, "")))) errors.push(`menu: image ${image} for "${id}" does not exist`);
         }
@@ -268,7 +287,7 @@ try {
         }
 
         // Item sheet markup the script depends on
-        for (const id of ["item-dialog", "item-title", "item-media", "item-meta", "item-desc", "item-sizes", "item-size-list", "item-qty", "item-add"])
+        for (const id of ["item-dialog", "item-title", "item-media", "item-meta", "item-desc", "item-sizes", "item-size-list", "item-extras", "item-extras-list", "item-qty", "item-add"])
             if (!ids.has(id)) errors.push(`menu: item sheet is missing #${id}`);
         if ((html.match(/data-item-qty=/g) || []).length !== 2) errors.push("menu: item sheet needs exactly two quantity buttons");
         if (!/data-item-close/.test(html)) errors.push("menu: item sheet has no close button");

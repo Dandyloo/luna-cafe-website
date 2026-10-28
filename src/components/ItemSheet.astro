@@ -30,6 +30,13 @@
                 </fieldset>
 
                 <p id="item-single" hidden class="mt-5 rounded-2xl bg-brand-primary/20 px-4 py-3 text-sm font-medium text-brand-text"></p>
+
+                <fieldset id="item-extras" hidden class="mt-5">
+                    <legend class="text-xs font-bold uppercase tracking-widest text-brand-deep">
+                        Add extras <span class="font-medium normal-case tracking-normal text-brand-text/55">(optional)</span>
+                    </legend>
+                    <div id="item-extras-list" class="mt-3 grid gap-2"></div>
+                </fieldset>
             </div>
         </div>
 
@@ -153,7 +160,7 @@
     }
     #item-dialog fieldset {
         min-width: 0;
-        margin: 0;
+        margin-inline: 0; /* side margins only, so the mt-5 spacing on each fieldset still applies */
         padding: 0;
         border: 0;
     }

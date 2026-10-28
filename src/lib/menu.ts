@@ -4,11 +4,16 @@ import type { MenuData } from "../types/menu";
 
 export type Option = { k: string; label: string; price: number };
 
+/** An optional add-on (checkbox in the item sheet). k is a stable key made from its name. */
+export type Extra = { k: string; name: string; price: number };
+
 export type CatalogItem = {
     id: string;
     name: string;
     available: boolean;
     options: Option[];
+    /** Key into the extras sets (see buildExtraSets) when this item can take extras. */
+    extraSet?: string;
 };
 
 const isPrice = (v: unknown): v is number => typeof v === "number" && v > 0;
@@ -88,6 +93,7 @@ export function buildCatalog(menu: MenuData): CatalogItem[] {
     const seen = new Set<string>();
     const out: CatalogItem[] = [];
     for (const category of menu) {
+        const extraSet = extrasFor(category).length ? slug(category.name) : undefined;
         for (const group of category.groups) {
             for (const item of group.items as any[]) {
                 const options = optionsFor(item);
@@ -99,9 +105,33 @@ export function buildCatalog(menu: MenuData): CatalogItem[] {
                     );
                 }
                 seen.add(id);
-                out.push({ id, name: item.name, available: item.available !== false, options });
+                out.push({ id, name: item.name, available: item.available !== false, options, ...(extraSet ? { extraSet } : {}) });
             }
         }
     }
     return out;
+}
+
+/** The extras a category offers (hidden or unpriced ones are left out). */
+export function extrasFor(category: { extras?: Array<{ name: string; price: number; available?: boolean }> }): Extra[] {
+    const seen = new Set<string>();
+    const out: Extra[] = [];
+    for (const e of category.extras ?? []) {
+        if (e.available === false || !isPrice(e.price)) continue;
+        const k = slug(e.name);
+        if (!k || seen.has(k)) throw new Error(`Duplicate or empty extra "${e.name}". Rename it.`);
+        seen.add(k);
+        out.push({ k, name: e.name, price: e.price });
+    }
+    return out;
+}
+
+/** Extras by category, keyed the same way as CatalogItem.extraSet. Sent once instead of repeated on every item. */
+export function buildExtraSets(menu: MenuData): Record<string, Extra[]> {
+    const sets: Record<string, Extra[]> = {};
+    for (const category of menu) {
+        const extras = extrasFor(category);
+        if (extras.length) sets[slug(category.name)] = extras;
+    }
+    return sets;
 }

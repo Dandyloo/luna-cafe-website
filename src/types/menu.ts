@@ -31,9 +31,19 @@ export type MenuGroup = {
     items: MenuItem[];
 };
 
+/** An optional add-on offered inside the item sheet for every item in a category (e.g. Extra Boba). */
+export type MenuExtra = {
+    name: string;
+    price: number;
+    /** Set to false to hide this extra without deleting it. */
+    available?: boolean;
+};
+
 export type MenuCategory = {
     name: string;
     groups: MenuGroup[];
+    /** Extras that can be ticked on any item in this category. */
+    extras?: MenuExtra[];
 };
 
 export type MenuData = MenuCategory[];
