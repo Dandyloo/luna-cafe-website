@@ -10,6 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "qa": "astro build && node scripts/qa-check.mjs",
+    "e2e": "node scripts/e2e-menu.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "audit:prod": "npm audit --omit=dev",
     "astro": "astro"

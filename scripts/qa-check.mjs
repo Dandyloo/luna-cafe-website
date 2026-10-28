@@ -209,6 +209,82 @@ try {
     errors.push(`ordering catalog could not be validated: ${e.message}`);
 }
 
+// Menu page (redesign): tiles, category navigation and the item sheet must all line up.
+// Items are checked in the built HTML, so search engines see every item and price.
+try {
+    const menuFile = join(DIST, "menu", "index.html");
+    if (!existsSync(menuFile)) {
+        errors.push("menu/index.html not found");
+    } else {
+        const html = readFileSync(menuFile, "utf8");
+        const menu = JSON.parse(readFileSync("src/data/menu.json", "utf8"));
+        const itemCount = menu.reduce(
+            (n, c) => n + (c.groups ?? []).reduce((m, g) => m + (g.items ?? []).length, 0),
+            0,
+        );
+        const groupCount = menu.reduce((n, c) => n + (c.groups ?? []).length, 0);
+
+        const orderable = new Set(
+            (JSON.parse(html.match(/<script[^>]*id="menu-data"[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? "{}").items ?? []).map(
+                (i) => i.id,
+            ),
+        );
+
+        // Tiles: one per menu item, in the server-rendered HTML
+        const tiles = [...html.matchAll(/<li\b[^>]*data-menu-item[^>]*>[\s\S]*?<\/li>/g)].map((m) => m[0]);
+        if (tiles.length !== itemCount)
+            errors.push(`menu: expected ${itemCount} item tiles in the HTML, found ${tiles.length}`);
+        const tileIds = new Set();
+        for (const tile of tiles) {
+            const id = tile.match(/data-item-id="([^"]+)"/)?.[1];
+            if (!id) {
+                errors.push("menu: a tile has no data-item-id");
+                continue;
+            }
+            if (tileIds.has(id)) errors.push(`menu: duplicate tile id "${id}"`);
+            tileIds.add(id);
+            const opens = /data-open-item/.test(tile);
+            const adds = /data-add/.test(tile);
+            if (orderable.has(id) && !opens) errors.push(`menu: tile "${id}" cannot be opened (no data-open-item)`);
+            if (!orderable.has(id) && (opens || adds)) errors.push(`menu: tile "${id}" is sold out but still has an order button`);
+            const image = tile.match(/data-image="([^"]+)"/)?.[1];
+            if (image && !existsSync(dist(image.replace(/^\//, "")))) errors.push(`menu: image ${image} for "${id}" does not exist`);
+        }
+        for (const id of orderable) if (!tileIds.has(id)) errors.push(`menu: orderable item "${id}" has no tile`);
+
+        // Category chips (phones/tablets) and rail (desktop): every link must reach a real section
+        const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+        const chipIds = [...html.matchAll(/data-chip="([^"]+)"/g)].map((m) => m[1]);
+        const railIds = [...html.matchAll(/data-rail="([^"]+)"/g)].map((m) => m[1]);
+        if (chipIds.length !== groupCount) errors.push(`menu: expected ${groupCount} category chips, found ${chipIds.length}`);
+        if (railIds.length !== groupCount) errors.push(`menu: expected ${groupCount} rail links, found ${railIds.length}`);
+        for (const id of [...chipIds, ...railIds]) if (!ids.has(id)) errors.push(`menu: category link "#${id}" has no matching section`);
+        if (new Set(chipIds).size !== chipIds.length) errors.push("menu: two groups share the same section id (rename one)");
+
+        // Group titles should be clean (sizes and prices live on the items now)
+        for (const m of html.matchAll(/<h3\b[^>]*>([\s\S]*?)<\/h3>/g)) {
+            const text = m[1].replace(/<[^>]+>/g, "").trim();
+            if (text.includes("(")) warnings.push(`menu: group title "${text}" still has a bracketed price hint`);
+        }
+
+        // Item sheet markup the script depends on
+        for (const id of ["item-dialog", "item-title", "item-media", "item-meta", "item-desc", "item-sizes", "item-size-list", "item-qty", "item-add"])
+            if (!ids.has(id)) errors.push(`menu: item sheet is missing #${id}`);
+        if ((html.match(/data-item-qty=/g) || []).length !== 2) errors.push("menu: item sheet needs exactly two quantity buttons");
+        if (!/data-item-close/.test(html)) errors.push("menu: item sheet has no close button");
+
+        // The order bar lives on every page
+        for (const file of htmlFiles) {
+            if (relative(DIST, file) === "404.html") continue;
+            if (!/id="cart-fab"/.test(readFileSync(file, "utf8"))) errors.push(`${relative(DIST, file)}: order bar (#cart-fab) missing`);
+        }
+
+        console.log(`Menu page: ${tiles.length} tiles, ${chipIds.length} chips, ${railIds.length} rail links checked.`);
+    }
+} catch (e) {
+    errors.push(`menu page could not be validated: ${e.message}`);
+}
+
 console.log(`Checked ${htmlFiles.length} HTML page(s) + menu data.`);
 if (warnings.length) console.log(`\nWarnings (${warnings.length}):\n- ` + warnings.join("\n- "));
 if (errors.length) {

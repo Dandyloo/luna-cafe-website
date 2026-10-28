@@ -37,6 +37,30 @@ export function normalize(text: string): string {
         .trim();
 }
 
+/** Group title for display: "Milk Tea (all 40 / 60)" -> "Milk Tea" (sizes and prices now show on each item and in the item sheet). */
+export const displayGroupName = (name: string) =>
+    name.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim() || name;
+
+/** Lowest price across an item's size options, or null if none. */
+export function fromPrice(options: Option[]): number | null {
+    return options.length ? Math.min(...options.map((o) => o.price)) : null;
+}
+
+/** Short line shown under the item name on the menu: "From GHS 40", "GHS 60", or "700ml only, GHS 60". */
+export function priceSummary(options: Option[]): string {
+    if (options.length === 0) return "";
+    if (options.length === 1) {
+        const [o] = options;
+        return o.label ? `${o.label} only, GHS ${o.price}` : `GHS ${o.price}`;
+    }
+    const lowest = fromPrice(options);
+    const prices = new Set(options.map((o) => o.price));
+    return prices.size === 1 ? `GHS ${lowest}` : `From GHS ${lowest}`;
+}
+
+/** First letter, for the placeholder tile shown when an item has no photo. */
+export const itemInitial = (name: string) => (name.trim()[0] ?? "").toUpperCase();
+
 /** Stable id for an item: "<group>--<item>". Changes only if the group or item is renamed. */
 export const itemId = (groupName: string, itemName: string) =>
     `${slug(groupName)}--${slug(itemName)}`;

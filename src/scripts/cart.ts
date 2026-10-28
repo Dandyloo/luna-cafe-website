@@ -175,12 +175,19 @@ function closedMessage(): string | null {
 
 /* ---------- rendering ---------- */
 
+const STEP_ICONS: Record<string, string> = {
+    "+": "M12 5v14M5 12h14",
+    "\u2212": "M5 12h14",
+    "\u00d7": "M6 6l12 12M18 6 6 18",
+};
+
 function stepButton(line: Line, delta: number, aria: string, text: string) {
     const b = h(
         "button",
-        "grid h-9 w-9 place-items-center rounded-full bg-brand-shadow/10 text-lg font-bold text-brand-shadow transition hover:bg-brand-primary active:scale-90 disabled:opacity-40",
-        text,
+        "grid h-9 w-9 place-items-center rounded-full bg-brand-shadow/10 text-brand-shadow transition hover:bg-brand-primary active:scale-90 disabled:opacity-40",
     );
+    // Drawn as an icon (not a text glyph) so the sign sits exactly in the middle of the circle
+    b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="${STEP_ICONS[text] ?? STEP_ICONS["+"]}"/></svg>`;
     b.type = "button";
     b.dataset.qty = String(delta);
     b.dataset.id = line.id;
@@ -275,37 +282,59 @@ function announce(message: string) {
 function bump() {
     const fab = byId("cart-fab");
     if (!fab || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // A quick pulse with an orange ring, so people see the order grow
     fab.animate(
-        [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }],
-        { duration: 260, easing: "ease-out" },
+        [
+            { transform: "scale(1)", boxShadow: "0 0 0 0 rgb(249 128 11 / 0.65)" },
+            { transform: "scale(1.04)", boxShadow: "0 0 0 10px rgb(249 128 11 / 0)", offset: 0.6 },
+            { transform: "scale(1)", boxShadow: "0 0 0 0 rgb(249 128 11 / 0)" },
+        ],
+        { duration: 450, easing: "ease-out" },
+    );
+}
+
+/** Small pop on the + button that was tapped. */
+function pop(el: HTMLElement) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate(
+        [{ transform: "scale(1)" }, { transform: "scale(1.3)" }, { transform: "scale(1)" }],
+        { duration: 280, easing: "ease-out" },
     );
 }
 
 /* ---------- cart actions ---------- */
 
-function addItem(id: string, k: string) {
+function addItem(id: string, k: string, qty = 1) {
     const item = index.get(id);
     const opt = item?.options.find((o) => o.k === k);
     if (!item || !opt) return;
     const label = item.name + (opt.label ? ` (${opt.label})` : "");
+    const want = Math.max(1, Math.min(MAX_QTY, Math.floor(Number(qty)) || 1));
+    let added = want;
 
     const existing = lines.find((l) => l.id === id && l.k === k);
     if (existing) {
-        if (existing.q >= MAX_QTY) {
+        const room = MAX_QTY - existing.q;
+        if (room <= 0) {
             announce(`You can order up to ${MAX_QTY} of ${label} online. For bigger orders, please message us on WhatsApp.`);
             return;
         }
-        existing.q++;
+        added = Math.min(want, room);
+        existing.q += added;
     } else if (lines.length >= MAX_LINES) {
         announce("That's a big order! Please send this one first, then start another.");
         return;
     } else {
-        lines.push({ id, k, q: 1 });
+        lines.push({ id, k, q: want });
     }
     saveCart();
     render();
     bump();
-    announce(`Added ${label} to your order.`);
+    announce(
+        added < want
+            ? `Added ${added} x ${label}. ${MAX_QTY} is the most you can order online.`
+            : `Added ${added > 1 ? `${added} x ` : ""}${label} to your order.`,
+    );
 }
 
 function changeQty(id: string, k: string, delta: number) {
@@ -524,7 +553,11 @@ document.addEventListener("click", (e) => {
     if (!t) return;
 
     const add = t.closest<HTMLElement>("[data-add]");
-    if (add) return addItem(add.dataset.id ?? "", add.dataset.opt ?? "");
+    if (add) {
+        addItem(add.dataset.id ?? "", add.dataset.opt ?? "");
+        pop(add);
+        return;
+    }
 
     const step = t.closest<HTMLElement>("[data-qty]");
     if (step) return changeQty(step.dataset.id ?? "", step.dataset.k ?? "", Number(step.dataset.qty));
@@ -544,6 +577,12 @@ document.addEventListener("click", (e) => {
     }
     // Clicks on the dimmed backdrop land on the <dialog> itself
     if (t.closest("[data-cart-close]") || t === byId("cart-dialog")) closeCart();
+});
+
+// The item sheet (src/scripts/item-sheet.ts) hands over its choice as an event
+document.addEventListener("luna:add-item", (e) => {
+    const d = (e as CustomEvent<{ id?: string; k?: string; qty?: number }>).detail;
+    if (d?.id && d.k) addItem(d.id, d.k, d.qty ?? 1);
 });
 
 // Pickup / delivery switch and delivery area

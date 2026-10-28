@@ -3,6 +3,8 @@ export type MenuItemBase = {
     description?: string;
     /** Set to false to show "Sold out" and stop the item being ordered online. */
     available?: boolean;
+    /** Optional photo, e.g. "/menu/brown-sugar-milk-tea.webp". Items without one show a tinted initial tile. */
+    image?: string;
 };
 
 export type MenuItemSingle = MenuItemBase & {
