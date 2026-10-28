@@ -113,11 +113,6 @@ function resolve(): Resolved[] {
 
 /* ---------- pickup / delivery ---------- */
 
-/** Delivery fee is never calculated on the site: Luna confirms it on WhatsApp. */
-function deliveryFee(): { known: boolean; fee: number } {
-    return mode === "delivery" ? { known: false, fee: 0 } : { known: true, fee: 0 };
-}
-
 function setMode(next: Mode) {
     mode = next === "delivery" && deliveryEnabled() ? "delivery" : "pickup";
 }
@@ -127,18 +122,11 @@ function renderMode() {
     const radio = byId<HTMLInputElement>(del ? "mode-delivery" : "mode-pickup");
     if (radio && !radio.checked) radio.checked = true;
 
-    show("cart-delivery-row", del);
     setText(
         "mode-note",
         del
-            ? "No address needed. Our rider will call you to ask where you are, and we'll confirm the delivery fee on WhatsApp."
+            ? "No address needed. Our rider will call you to ask where you are."
             : "We'll notify you on WhatsApp when your order is ready for pickup.",
-    );
-    setText(
-        "cart-pay-note",
-        del
-            ? "Pay when your order arrives. We confirm every order on WhatsApp."
-            : "Pay when you pick up. We confirm every order on WhatsApp.",
     );
     setText("cart-submit-label", del ? "Send delivery order on WhatsApp" : "Send pickup order on WhatsApp");
 }
@@ -223,9 +211,6 @@ function render() {
     const rows = resolve();
     const count = rows.reduce((n, r) => n + r.line.q, 0);
     const subtotal = rows.reduce((n, r) => n + r.line.q * r.opt.price, 0);
-    const { known, fee } = deliveryFee();
-    const total = subtotal + fee;
-    const del = mode === "delivery";
 
     const fab = byId("cart-fab");
     if (fab) {
@@ -249,9 +234,7 @@ function render() {
 
     renderMode();
     setText("cart-subtotal", money(subtotal));
-    setText("cart-delivery-fee", known ? (fee === 0 ? "Free" : money(fee)) : "Confirmed on WhatsApp");
-    setText("cart-total", money(total));
-    show("cart-total-note", del && !known);
+    setText("cart-total", money(subtotal));
 
     const closed = closedMessage();
     setText("cart-closed", closed ?? "");
@@ -493,30 +476,29 @@ function handleSend() {
 
     const note = noteEl.value.trim().replace(/\s+/g, " ").slice(0, 200);
     const subtotal = rows.reduce((n, r) => n + r.line.q * r.opt.price, 0);
-    const { known, fee } = deliveryFee();
-    const total = subtotal + fee;
     const ref = makeRef();
 
-    const feeText = known ? (fee === 0 ? "Free" : money(fee)) : "to be confirmed";
+    // Same layout for both order types. No payment or delivery fee lines: Luna contacts the customer.
     const message = [
         "Hi Luna! I'd like to place an order from your website.",
         "",
-        `*Order ${ref}*`,
-        delivery ? "*Delivery* (rider will call me for my location)" : "*Pickup* (please message me when it's ready)",
-        `Name: ${name}`,
-        `Phone: ${phone}`,
+        `\u{1F9FE} *ORDER ${ref}*`,
+        delivery ? "\u{1F6F5} *Delivery*" : "\u{1F6CD}\uFE0F *Pickup*",
+        ...(delivery ? ["\u{1F4CD} Please have the rider call me for my location."] : []),
         "",
+        `\u{1F464} ${name}`,
+        `\u{1F4DE} ${phone}`,
+        "",
+        "*Items*",
         ...rows.map(
             ({ line, item, opt }) =>
-                `- ${line.q} x ${item.name}${opt.label ? ` (${opt.label})` : ""} - ${money(line.q * opt.price)}`,
+                `\u2022 ${line.q} x ${item.name}${opt.label ? ` (${opt.label})` : ""} - ${money(line.q * opt.price)}`,
         ),
+        ...(note ? ["", `\u{1F4DD} Note: ${note}`] : []),
         "",
-        ...(delivery
-            ? [`Subtotal: ${money(subtotal)}`, `Delivery fee: ${feeText}`]
-            : []),
-        delivery && !known ? `*Items total: ${money(subtotal)}* (+ delivery fee)` : `*Total: ${money(total)}*`,
-        ...(note ? [`Note: ${note}`] : []),
-        `Payment: on ${delivery ? "delivery" : "pickup"}`,
+        `*Total: ${money(subtotal)}*`,
+        "",
+        "Please confirm my order. Thank you!",
     ].join("\n");
 
     const url = `https://wa.me/${cat.whatsapp}?text=${encodeURIComponent(message)}`;
@@ -530,14 +512,11 @@ function handleSend() {
     showSuccess = true;
     setText("cart-ref", ref);
     setText("cart-success-type", delivery ? "Delivery" : "Pickup");
-    setText(
-        "cart-success-total",
-        delivery && !known ? `${money(subtotal)} + delivery fee` : money(total),
-    );
+    setText("cart-success-total", money(subtotal));
     setText(
         "cart-success-next",
         delivery
-            ? "Our rider will call you for your location, and we confirm the delivery fee."
+            ? "Our rider will call you for your location."
             : "We message you when it's ready for pickup.",
     );
     const link = byId<HTMLAnchorElement>("cart-wa-link");
