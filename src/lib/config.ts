@@ -1,6 +1,8 @@
 // src/lib/config.ts
 // Business details used by the ordering flow. Change them here, not in components.
 
+import type { OrderingMode } from "./transport";
+
 /** WhatsApp number in international format, digits only (no "+"). */
 export const WHATSAPP_NUMBER = "233593676875";
 
@@ -13,6 +15,15 @@ export const HOURS = [
   { days: [1, 2, 3, 4], open: 8 * 60, close: 22 * 60 },
   { days: [5, 6, 0], open: 8 * 60, close: 23 * 60 },
 ];
+
+/**
+ * Where finished orders go (see src/lib/transport.ts).
+ * "whatsapp": the order opens in WhatsApp (live today).
+ * "api" / "app-only": reserved for the staff orders panel and the mobile app.
+ */
+export const ORDERING: { mode: OrderingMode } = {
+  mode: "whatsapp",
+};
 
 /**
  * Delivery settings.

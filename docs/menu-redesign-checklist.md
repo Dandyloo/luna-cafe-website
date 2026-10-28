@@ -36,11 +36,21 @@ The WhatsApp message format does not change in these steps. Do one step at a tim
 - [ ] Other pages (home, about): order bar shows when the cart has items, page bottom not covered
 
 ## Phase 2: richer ordering
-- [ ] Extras as add-ons inside boba items
+- [x] Extras as add-ons inside boba items (checkboxes in the item sheet only; the old "Extras" menu group is now `extras` on the Luna Boba category in menu.json; extras price per drink; cart lines carry `x`, orders carry `addons`)
+- [x] Cart / order screen redesign (card per item with size/extras tags, price-each and pill stepper; Items + Total summary; pinned "Send order · GHS X" button; receipt-style confirmation with "Open WhatsApp again" / "I've sent my order")
 - [ ] Per-item notes
 - [ ] Badges (Popular, New)
 
 ## Phase 3: transport seam
-- [ ] Pure order logic into `src/lib/`, `Order` type, `sendOrder(order)` with a WhatsApp transport
+- [x] Pure order logic into `src/lib/`, `Order` type, `sendOrder(order)` with a WhatsApp transport
+      (`src/lib/order.ts`: Order type, buildOrder, message formatter, ref, phone check;
+      `src/lib/transport.ts`: OrderTransport, whatsappTransport, getTransport, sendOrder; cart.ts now only builds and sends)
 - [ ] Normalize price fields into a `sizes` list in the data
-- [ ] `ORDERING.mode` flag in `config.ts`
+      (left as is on purpose: `optionsFor()` already gives the cart one normalized size list, and rewriting all 65 items in menu.json buys nothing yet.
+      Do it when the admin catalog needs it.)
+- [x] `ORDERING.mode` flag in `config.ts` ("whatsapp" live; "api" and "app-only" reserved, they show a polite "message us on WhatsApp" error until a transport exists)
+
+### Adding the orders panel later
+1. Write `apiTransport(url)` in `src/lib/transport.ts`: POST the `Order` as JSON, return `{ ok: true }`.
+2. Return it from `getTransport()` for `mode === "api"` and set `ORDERING.mode = "api"` in `src/lib/config.ts`.
+3. Build the panel against the `Order` type. To keep WhatsApp as a backup, have the api transport also open WhatsApp.
