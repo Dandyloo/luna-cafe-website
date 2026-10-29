@@ -67,7 +67,7 @@ function renderMedia(name: string, image?: string) {
     const media = byId("item-media");
     if (!media) return;
     if (image) {
-        const img = h("img", "h-full w-full object-cover");
+        const img = h("img", "h-full w-full object-contain py-2");
         img.src = image;
         img.alt = "";
         media.replaceChildren(img);

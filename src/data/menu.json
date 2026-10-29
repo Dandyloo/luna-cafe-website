@@ -7,46 +7,55 @@
         "items": [
           {
             "name": "Brown Sugar Milk Tea",
+            "image": "/menu/brown-sugar-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Brown Sugar Fresh Milk",
+            "image": "/menu/brown-sugar-fresh-milk.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Coconut Milk Tea",
+            "image": "/menu/coconut-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Caramel Milk Tea",
+            "image": "/menu/caramel-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Taro Milk Tea",
+            "image": "/menu/taro-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Blueberry Milk Tea",
+            "image": "/menu/blueberry-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Chocolate Milk Tea",
+            "image": "/menu/chocolate-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Tiramisu Milk Tea",
+            "image": "/menu/tiramisu-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
           {
             "name": "Strawberry Milk Tea",
+            "image": "/menu/strawberry-milk-tea.webp",
             "priceSmall": 40,
             "priceLarge": 60
           },
@@ -77,6 +86,7 @@
         "items": [
           {
             "name": "Strawberry Fruit Tea",
+            "image": "/menu/strawberry-fruit-tea.webp",
             "priceSmall": 40,
             "priceLarge": 50
           },
